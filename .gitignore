@@ -99,4 +99,4 @@ Spécifique Base de données (Si SQL local)
 
 *.sqlite
 *.db
-dump.rdb
+dump.rdb    
