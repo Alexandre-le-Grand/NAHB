@@ -6,12 +6,14 @@ const authRoutes = require('./src/routes/authRoutes'); // Import des routes
 require('./src/models/User'); // Import du modèle User pour la création de la table
 const app = express();
 
+
 // Middlewares
 app.use(express.json());
 app.use(cors());
 
+
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 
 // Route Test
 const User = require('./src/models/User')
