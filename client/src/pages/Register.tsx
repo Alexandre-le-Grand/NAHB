@@ -25,7 +25,6 @@ export default function Register() {
       
       if (!res.ok) {
         if (result.errors) {
-          // Si le backend renvoie un tableau d'erreurs (ex: express-validator)
           setError(Array.isArray(result.errors) ? result.errors.map((e) => e.msg).join(', ') : 'Erreur de validation');
         } else if (result.message) {
           setError(result.message);
@@ -34,7 +33,6 @@ export default function Register() {
         }
       } else {
         setSuccess(result.message || 'Inscription réussie !');
-        // Redirection après 2 secondes
         setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
