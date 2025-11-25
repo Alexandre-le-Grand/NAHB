@@ -25,8 +25,16 @@ const Accueil = () => {
             <h1>Accueil</h1>
             <p>Bienvenue sur ce site de livre dont vous êtes le héros.</p>
             <p>Vous pouvez créer vos propres histoires ou jouer à celles des autres.</p>
+            
 
             <div style={{ marginTop: '20px' }}>
+                <Link to="/users">
+          <button className="btn-glow w-full py-4 rounded-3xl text-lg font-bold shadow-2xl bg-white text-purple-700 hover:bg-purple-100 hover:text-purple-800 transform hover:scale-105">
+            Gestion des utilisateurs
+          </button>
+        </Link>
+        <br />
+        <br />
                 <button onClick={handleLogout} style={{ backgroundColor: 'red', color: 'white' }}>
                     Se déconnecter
                 </button>

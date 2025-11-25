@@ -38,12 +38,14 @@ export default function Login() {
   return (
     <div className="container">
       <h1>Connexion</h1>
+      <br />
       
       {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <label>
           Email :
+          <br />
           <input 
             type="email" 
             name="email" 
@@ -52,9 +54,12 @@ export default function Login() {
             required
           />
         </label>
+        <br />
+        <br />
         
         <label>
           Mot de passe :
+          <br />
           <input 
             type="password" 
             name="password" 
@@ -63,10 +68,13 @@ export default function Login() {
             required
           />
         </label>
+        <br />
+        <br />
+      
         
         <button type="submit">Se connecter</button>
       </form>
-
+      <br />
       <p>
         Pas encore de compte ? <Link to="/register">Inscrivez-vous</Link>
       </p>

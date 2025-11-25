@@ -57,3 +57,7 @@ sequelize.sync({ force: false })
     .catch(err => {
         console.error('❌ Erreur de synchro DB :', err);
     });
+
+    const userRoutes = require('./src/routes/userRoutes');
+// ...
+app.use('/api/users', userRoutes);

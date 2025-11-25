@@ -5,15 +5,14 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-
     const data = { username, email, password };
 
     try {
@@ -22,12 +21,12 @@ export default function Register() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-
       const result = await res.json();
-
+      
       if (!res.ok) {
         if (result.errors) {
-          setError(result.errors.map((e: any) => e.msg).join(', '));
+          // Si le backend renvoie un tableau d'erreurs (ex: express-validator)
+          setError(Array.isArray(result.errors) ? result.errors.map((e) => e.msg).join(', ') : 'Erreur de validation');
         } else if (result.message) {
           setError(result.message);
         } else {
@@ -35,6 +34,7 @@ export default function Register() {
         }
       } else {
         setSuccess(result.message || 'Inscription réussie !');
+        // Redirection après 2 secondes
         setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
@@ -44,50 +44,89 @@ export default function Register() {
   };
 
   return (
-    <div className="register">
-      <h1>Inscription</h1>
+    <div className="fade-in" style={{ width: '100%', maxWidth: '450px', zIndex: 10 }}>
+      <div className="card">
+        <h2 className="text-glow" style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '2rem', color: 'var(--text-primary)' }}>
+          Inscription
+        </h2>
 
-      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
-      {success && <div style={{ color: 'green', marginBottom: '1rem' }}>{success}</div>}
+        {/* Messages d'alerte */}
+        {error && (
+          <div style={{ 
+            padding: '1rem', 
+            background: 'rgba(239, 68, 68, 0.2)', 
+            border: '1px solid rgba(239, 68, 68, 0.5)', 
+            borderRadius: '12px', 
+            color: '#fca5a5', 
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div style={{ 
+            padding: '1rem', 
+            background: 'rgba(34, 197, 94, 0.2)', 
+            border: '1px solid rgba(34, 197, 94, 0.5)', 
+            borderRadius: '12px', 
+            color: '#86efac', 
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            {success}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Nom d'utilisateur
-          <input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            required
-          />
-        </label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          <div className="input-group">
+            <label htmlFor="username">Nom d'utilisateur</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              placeholder="Votre pseudo"
+            />
+          </div>
 
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-        </label>
+          <div className="input-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="exemple@email.com"
+            />
+          </div>
 
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            minLength={6}
-          />
-        </label>
+          <div className="input-group">
+            <label htmlFor="password">Mot de passe</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              placeholder="••••••••"
+            />
+          </div>
 
-        <button type="submit">S'inscrire</button>
+          <button type="submit" style={{ marginTop: '1rem' }}>
+            S'inscrire
+          </button>
+        </form>
 
-        <p>
-          Déjà inscrit ? <Link to="/login">Se connecter</Link>
-        </p>
-      </form>
+        <div style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <p>Déjà inscrit ? <Link to="/login">Se connecter</Link></p>
+        </div>
+      </div>
     </div>
   );
 }

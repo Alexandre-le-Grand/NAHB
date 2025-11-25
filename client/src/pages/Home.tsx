@@ -41,16 +41,6 @@ export default function Home() {
           </button>
         </Link>
       </div>
-
-      {/* Footer subtil */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 1 }}
-        className="mt-12 text-white text-sm text-center opacity-80"
-      >
-        &copy; 2025 NAHB. Tous droits réservés.
-      </motion.p>
     </div>
   );
 }
