@@ -1,126 +1,170 @@
-const Story = require('../models/Story')
-const Page = require('../models/Page')
-const Choice = require('../models/Choice')
+const Story = require('../models/Story');
+const Page = require('../models/Page');
+const Choice = require('../models/Choice');
 
-exports.createStoryWithPages = async (req, res) => {
+// -----------------------------
+// CREATE STORY SIMPLE
+// -----------------------------
+const createStory = async (req, res) => {
     try {
-        const { title, description, pages } = req.body
-        if (!title || !pages || !Array.isArray(pages) || pages.length === 0) {
-            return res.status(400).json({ message: "Titre et pages obligatoires" })
-        }
-
-        const authorId = req.user.id
+        const { title, description } = req.body;
+        if (!title) return res.status(400).json({ message: "Titre obligatoire" });
 
         const story = await Story.create({
             title,
             description,
-            AuthorId: authorId
-        })
+            AuthorId: req.user.id
+        });
 
-        const createdPages = []
+        res.status(201).json(story);
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
 
+// -----------------------------
+// GET ALL STORIES
+// -----------------------------
+const getAllStories = async (req, res) => {
+    try {
+        const stories = await Story.findAll();
+        res.json(stories);
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
+
+// -----------------------------
+// GET STORY BY ID
+// -----------------------------
+const getStoryById = async (req, res) => {
+    try {
+        const story = await Story.findByPk(req.params.id);
+        if (!story) return res.status(404).json({ message: "Story introuvable" });
+        res.json(story);
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
+
+// -----------------------------
+// UPDATE STORY
+// -----------------------------
+const updateStory = async (req, res) => {
+    try {
+        const story = await Story.findByPk(req.params.id);
+        if (!story) return res.status(404).json({ message: "Story introuvable" });
+
+        if (story.AuthorId !== req.user.id)
+            return res.status(403).json({ message: "Accès refusé" });
+
+        await story.update(req.body);
+        res.json(story);
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
+
+// -----------------------------
+// DELETE STORY
+// -----------------------------
+const deleteStory = async (req, res) => {
+    try {
+        const story = await Story.findByPk(req.params.id);
+        if (!story) return res.status(404).json({ message: "Story introuvable" });
+
+        if (story.AuthorId !== req.user.id)
+            return res.status(403).json({ message: "Accès refusé" });
+
+        await story.destroy();
+        res.json({ message: "Story supprimée" });
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
+
+// -----------------------------
+// CREATE STORY WITH PAGES + CHOICES
+// -----------------------------
+const createStoryWithPages = async (req, res) => {
+    const t = await Story.sequelize.transaction();
+    try {
+        const { title, description, pages } = req.body;
+
+        if (!title || !pages || pages.length === 0)
+            return res.status(400).json({ message: "Titre et pages obligatoires" });
+
+        // 1️⃣ Création de l'histoire
+        const story = await Story.create({
+            title,
+            description,
+            AuthorId: req.user.id
+        }, { transaction: t });
+
+        // 2️⃣ Création des pages
+        const pageMap = []; // { index, id, isEnding }
         for (let i = 0; i < pages.length; i++) {
-            const pageData = pages[i]
-            const page = await Page.create({
-                content: pageData.content,
-                isEnding: pageData.isEnding || false,
+            const p = await Page.create({
+                content: pages[i].content,
+                isEnding: pages[i].isEnding || false,
                 storyId: story.id
-            })
-            createdPages.push({ ...pageData, id: page.id, index: i })
+            }, { transaction: t });
+
+            pageMap.push({ index: i, id: p.id, isEnding: pages[i].isEnding || false });
         }
 
+        // 3️⃣ Création des choix (max 2 par page, sauf pages finales)
         for (let i = 0; i < pages.length; i++) {
-            const pageData = pages[i]
-            if (pageData.choices && Array.isArray(pageData.choices)) {
-                for (let choiceData of pageData.choices) {
-                    const nextPage = createdPages.find(p => p.index === choiceData.nextPageIndex)
+            const page = pages[i];
+            if (!pageMap[i].isEnding && page.choices && page.choices.length > 0) {
+                const choicesToCreate = page.choices.slice(0, 2);
+                for (let choice of choicesToCreate) {
+                    const nextPage = pageMap.find(p => p.index === choice.nextPageIndex);
                     await Choice.create({
-                        text: choiceData.text,
-                        source_PageId: createdPages[i].id,
+                        text: choice.text,
+                        source_PageId: pageMap[i].id,
                         next_PageId: nextPage ? nextPage.id : null
-                    })
+                    }, { transaction: t });
                 }
             }
         }
 
-        await story.update({ startPageId: createdPages[0].id })
+        // 4️⃣ Définir la startPageId
+        await story.update({ startPageId: pageMap[0].id }, { transaction: t });
 
-        res.status(201).json({ message: "Story créée avec succès", storyId: story.id })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: "Erreur serveur", error: error.message })
+        await t.commit();
+        res.status(201).json({ message: "Story créée avec succès", storyId: story.id });
+
+    } catch (err) {
+        await t.rollback();
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
-}
+};
 
-// ---- Add missing standard CRUD handlers expected by routes ----
-exports.createStory = async (req, res) => {
+// -----------------------------
+// PUBLISH STORY (admin only)
+// -----------------------------
+const publishStory = async (req, res) => {
     try {
-        const { title, description } = req.body
-        if (!title) return res.status(400).json({ message: 'Titre obligatoire' })
+        const story = await Story.findByPk(req.params.id);
+        if (!story) return res.status(404).json({ message: "Story introuvable" });
 
-        const authorId = req.user && req.user.id ? req.user.id : null
-        const newStory = await Story.create({ title, description, AuthorId: authorId })
-        res.status(201).json(newStory)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Erreur serveur', error: error.message })
+        await story.update({ statut: "publié" });
+        res.json({ message: "Story publiée", story });
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
-}
+};
 
-exports.getAllStories = async (req, res) => {
-    try {
-        const stories = await Story.findAll()
-        res.json(stories)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Erreur serveur', error: error.message })
-    }
-}
-
-exports.getStoryById = async (req, res) => {
-    try {
-        const { id } = req.params
-        const story = await Story.findByPk(id)
-        if (!story) return res.status(404).json({ message: 'Story introuvable' })
-        res.json(story)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Erreur serveur', error: error.message })
-    }
-}
-
-exports.updateStory = async (req, res) => {
-    try {
-        const { id } = req.params
-        const story = await Story.findByPk(id)
-        if (!story) return res.status(404).json({ message: 'Story introuvable' })
-
-        if (req.user && req.user.id && story.AuthorId && req.user.id !== story.AuthorId) {
-            return res.status(403).json({ message: 'Accès refusé' })
-        }
-
-        await story.update(req.body)
-        res.json(story)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Erreur serveur', error: error.message })
-    }
-}
-
-exports.deleteStory = async (req, res) => {
-    try {
-        const { id } = req.params
-        const story = await Story.findByPk(id)
-        if (!story) return res.status(404).json({ message: 'Story introuvable' })
-
-        if (req.user && req.user.id && story.AuthorId && req.user.id !== story.AuthorId) {
-            return res.status(403).json({ message: 'Accès refusé' })
-        }
-
-        await story.destroy()
-        res.json({ message: 'Story supprimée' })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Erreur serveur', error: error.message })
-    }
-}
+// -----------------------------
+// EXPORT
+// -----------------------------
+module.exports = {
+    createStory,
+    getAllStories,
+    getStoryById,
+    updateStory,
+    deleteStory,
+    createStoryWithPages,
+    publishStory
+};
