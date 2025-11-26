@@ -4,7 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 type ChoiceDraft = {
   id: string;
   text: string;
+  // we support either a numeric index or a client-side temp page id
   nextPageIndex: number | null;
+  nextPageTempId?: string | null;
 };
 
 type PageDraft = {
@@ -54,7 +56,7 @@ export default function PageStoryCreator(): JSX.Element {
 
   const addChoiceToEditor = () => {
     if (choices.length >= 2) return;
-    setChoices([...choices, { id: genId("c_"), text: "", nextPageIndex: null }]);
+    setChoices([...choices, { id: genId("c_"), text: "", nextPageIndex: null, nextPageTempId: null }]);
   };
 
   const removeChoiceFromEditor = (id: string) => {
@@ -102,7 +104,7 @@ export default function PageStoryCreator(): JSX.Element {
       if (page.isEnding) return copy;
       if (!page.choices) page.choices = [];
       if (page.choices.length >= 2) return copy;
-      page.choices = [...page.choices, { id: genId("c_"), text: "", nextPageIndex: null }];
+      page.choices = [...page.choices, { id: genId("c_"), text: "", nextPageIndex: null, nextPageTempId: null }];
       copy[pageIndex] = page;
       return copy;
     });
@@ -142,10 +144,14 @@ export default function PageStoryCreator(): JSX.Element {
       title: title.trim(),
       description: description.trim(),
       pages: pages.map((pg) => ({
+        // include the client-side generated id so server can use it to resolve references
+        id: pg.id,
         content: pg.content,
         isEnding: pg.isEnding,
         choices: pg.isEnding ? [] : (pg.choices || []).slice(0, 2).map(c => ({
           text: c.text,
+          // prefer a chosen tempId reference so later edits or reorders don't break
+          nextPageTempId: c.nextPageTempId ?? undefined,
           nextPageIndex: typeof c.nextPageIndex === "number" ? c.nextPageIndex : null
         }))
       }))
@@ -268,18 +274,37 @@ export default function PageStoryCreator(): JSX.Element {
                       setChoices(copy);
                     }}
                   />
-                  <input
-                    style={{...styles.input, width: 120}}
-                    type="number"
-                    placeholder={pages.length ? `Page (0..${pages.length})` : "Index"}
-                    value={c.nextPageIndex ?? ""}
-                    onChange={(e) => {
-                      const copy = [...choices];
-                      const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
-                      copy[idx] = { ...copy[idx], nextPageIndex: isNaN(v as any) ? null : v };
-                      setChoices(copy);
-                    }}
-                  />
+                  <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+                    <input
+                      style={{...styles.input, width: 120}}
+                      type="number"
+                      placeholder={pages.length ? `Page (0..${pages.length})` : "Index"}
+                      value={c.nextPageIndex ?? ""}
+                      onChange={(e) => {
+                        const copy = [...choices];
+                        const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
+                        copy[idx] = { ...copy[idx], nextPageIndex: isNaN(v as any) ? null : v, nextPageTempId: null };
+                        setChoices(copy);
+                      }}
+                    />
+
+                    {pages.length > 0 && (
+                      <select
+                        value={c.nextPageTempId ?? ""}
+                        onChange={(e) => {
+                          const copy = [...choices];
+                          copy[idx] = { ...copy[idx], nextPageTempId: e.target.value || null, nextPageIndex: null };
+                          setChoices(copy);
+                        }}
+                        style={{...styles.input, width: 240}}
+                      >
+                        <option value="">— Cible existante (facultatif) —</option>
+                        {pages.map((pg, pi) => (
+                          <option key={pg.id} value={pg.id}>Page {pi} — {pg.content.slice(0, 30)}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                   {choices.length > 1 && (
                     <button type="button" onClick={() => removeChoiceFromEditor(c.id)} style={styles.deleteBtnSmall}>X</button>
                   )}
@@ -316,10 +341,16 @@ export default function PageStoryCreator(): JSX.Element {
                   {p.choices.map((c, ci) => (
                     <div key={c.id} style={styles.choiceEditorRow}>
                       <input value={c.text} onChange={(e) => updateChoiceInPage(i, ci, { text: e.target.value })} style={{...styles.input, flex: 1}} />
-                      <input type="number" placeholder={`Page (0..${Math.max(0, pages.length - 1)})`} value={c.nextPageIndex ?? ""} onChange={(e) => {
-                        const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
-                        updateChoiceInPage(i, ci, { nextPageIndex: isNaN(v as any) ? null : v });
-                      }} style={{...styles.input, width: 120 }} />
+                      <select
+                        value={c.nextPageTempId ?? ""}
+                        onChange={(e) => updateChoiceInPage(i, ci, { nextPageTempId: e.target.value || null, nextPageIndex: null })}
+                        style={{...styles.input, width: 220}}
+                      >
+                        <option value="">-- Choisir une page cible --</option>
+                        {pages.map((pg, idx) => (
+                          <option key={pg.id} value={pg.id}>Page {idx} — {pg.content.slice(0, 40)}{pg.content.length > 40 ? '…' : ''}</option>
+                        ))}
+                      </select>
                     </div>
                   ))}
                   <button onClick={() => addChoiceToPage(i)} disabled={p.choices.length >= 2} style={{...styles.button, ...styles.buttonSecondary, marginTop: 8}}>Ajouter un choix</button>

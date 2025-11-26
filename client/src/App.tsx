@@ -6,7 +6,7 @@ import Accueil from "./pages/Accueil";
 import UserList from "./pages/UserList";
 import PageStoryCreator from "./pages/PageStoryCreator";
 import Library from "./pages/Library";
-
+import ReadStory from "./pages/ReadStory";
 
 export default function App() {
 return (
@@ -18,7 +18,7 @@ return (
 <Route path="/users" element={<UserList />} />
 <Route path="/story-creator" element={<PageStoryCreator />} />
 <Route path="/library" element={<Library />} />
-
+<Route path="/play/:storyId" element={<ReadStory />} />
 
 
 </Routes>

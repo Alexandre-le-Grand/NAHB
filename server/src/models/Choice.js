@@ -20,7 +20,6 @@ const Choice = sequelize.define('Choice', {
   timestamps: false
 })
 
-Choice.belongsTo(Page, { as: 'sourcePage', foreignKey: 'source_PageId' })
-Choice.belongsTo(Page, { as: 'nextPage', foreignKey: 'next_PageId' })
+
 
 module.exports = Choice
