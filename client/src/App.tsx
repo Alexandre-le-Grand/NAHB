@@ -8,6 +8,7 @@ import PageStoryCreator from "./pages/PageStoryCreator";
 import Library from "./pages/Library";
 import ReadStory from "./pages/ReadStory";
 import MyStory from "./pages/Mystory";
+import Profile from "./pages/Profile";
 
 export default function App() {
 return (
@@ -21,7 +22,7 @@ return (
 <Route path="/library" element={<Library />} />
 <Route path="/play/:storyId" element={<ReadStory />} />
 <Route path="/my-stories" element={<MyStory />} />
-
+<Route path="/profile" element={<Profile />} />
 
 </Routes>
 );

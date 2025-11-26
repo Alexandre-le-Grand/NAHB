@@ -38,10 +38,12 @@ const Accueil = () => {
                     StoryVerse
                 </div>
                 <div style={styles.navRight}>
-                    <div style={styles.userInfo}>
-                        <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
-                        <span style={styles.username}>{user.username}</span>
-                    </div>
+                    <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={styles.userInfo}>
+                            <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
+                            <span style={styles.username}>{user.username}</span>
+                        </div>
+                    </Link>
                     <button onClick={handleLogout} style={styles.logoutBtn}>
                         Déconnexion
                     </button>

@@ -1,157 +1,157 @@
-# ✅ **10/20 — Fonctionnalités de base (obligatoires)**
+  # ✅ **10/20 — Fonctionnalités de base (obligatoires)**
 
-### 👤 Authentification
+  ### 👤 Authentification
 
-* Inscription (pseudo/email + mdp)
-* Connexion / Déconnexion
-* Session persistante (reste connecté)
+  * Inscription (pseudo/email + mdp)
+  * Connexion / Déconnexion
+  * Session persistante (reste connecté)
 
-### ✍️ Côté auteur — Histoires
+  ### ✍️ Côté auteur — Histoires
 
-* Créer une histoire (titre + description + tags libres)
-* Modifier / supprimer ses histoires
-* Statut : brouillon (par défaut) / publié
-* Définir une page de départ
+  * Créer une histoire (titre + description + tags libres)
+  * Modifier / supprimer ses histoires
+  * Statut : brouillon (par défaut) / publié
+  * Définir une page de départ
 
-### 📄 Pages / Scènes
+  ### 📄 Pages / Scènes
 
-* Créer des scènes avec :
+  * Créer des scènes avec :
 
-  * texte
-  * option : « page finale »
-* Pour chaque scène :
+    * texte
+    * option : « page finale »
+  * Pour chaque scène :
 
-  * ajouter des choix avec texte
-  * chaque choix renvoie vers une autre page
-* Modifier / supprimer pages et choix
+    * ajouter des choix avec texte
+    * chaque choix renvoie vers une autre page
+  * Modifier / supprimer pages et choix
 
-### 📖 Côté lecteur — Lecture
+  ### 📖 Côté lecteur — Lecture
 
-* Liste des histoires publiées
-* Recherche par titre
-* Lecture :
+  * Liste des histoires publiées
+  * Recherche par titre
+  * Lecture :
 
-  * commence sur la page de départ
-  * affiche texte + choix
-  * clic → page suivante
-  * fin claire si fin atteinte
+    * commence sur la page de départ
+    * affiche texte + choix
+    * clic → page suivante
+    * fin claire si fin atteinte
 
-### 📊 Enregistrement minimal des parties
+  ### 📊 Enregistrement minimal des parties
 
-* À la fin : enregistrer
+  * À la fin : enregistrer
 
-  * histoire jouée
-  * page de fin atteinte
-  * utilisateur
+    * histoire jouée
+    * page de fin atteinte
+    * utilisateur
 
-### 🔧 Admin
+  ### 🔧 Admin
 
-* Bannir un auteur
-* Suspendre une histoire
-* Stats globales (nb total de parties jouées)
+  * Bannir un auteur
+  * Suspendre une histoire
+  * Stats globales (nb total de parties jouées)
 
----
+  ---
 
-# ✅ **13/20 — Fonctionnalités avancées (lecteur)**
+  # ✅ **13/20 — Fonctionnalités avancées (lecteur)**
 
-### 🎚️ Filtrage
+  ### 🎚️ Filtrage
 
-* Filtrer les histoires par thème
+  * Filtrer les histoires par thème
 
-### 📊 Statistiques (simples + parcours)
+  ### 📊 Statistiques (simples + parcours)
 
-* Nombre de fois qu’une fin est atteinte
-* Nombre de parties totales
-* « Vous avez pris le même chemin que X % des joueurs »
-* Stats % par fin
+  * Nombre de fois qu’une fin est atteinte
+  * Nombre de parties totales
+  * « Vous avez pris le même chemin que X % des joueurs »
+  * Stats % par fin
 
-### 🏆 Fins nommées + collection
+  ### 🏆 Fins nommées + collection
 
-* Chaque fin a un label ("Fin héroïque", …)
-* Le lecteur voit les fins déjà débloquées pour une histoire
+  * Chaque fin a un label ("Fin héroïque", …)
+  * Le lecteur voit les fins déjà débloquées pour une histoire
 
-### ⭐ Notes & commentaires
+  ### ⭐ Notes & commentaires
 
-* Noter 1–5 ★
-* Ajouter un commentaire
-* Moyenne + nb de votes visibles
+  * Noter 1–5 ★
+  * Ajouter un commentaire
+  * Moyenne + nb de votes visibles
 
-### 💾 Reprise automatique
+  ### 💾 Reprise automatique
 
-* Sauvegarde du parcours en cours
-* Le lecteur peut reprendre où il s’est arrêté
+  * Sauvegarde du parcours en cours
+  * Le lecteur peut reprendre où il s’est arrêté
 
-### 🚨 Signalement
+  ### 🚨 Signalement
 
-* Un lecteur peut signaler une histoire
+  * Un lecteur peut signaler une histoire
 
----
+  ---
 
-# ✅ **16/20 — Fonctionnalités avancées (auteur + UX)**
+  # ✅ **16/20 — Fonctionnalités avancées (auteur + UX)**
 
-### 👤 Espace auteur
+  ### 👤 Espace auteur
 
-* Profil Auteur / Mes histoires
-* Stats de base par histoire :
+  * Profil Auteur / Mes histoires
+  * Stats de base par histoire :
 
-  * lectures
-  * fins atteintes
-  * note moyenne
+    * lectures
+    * fins atteintes
+    * note moyenne
 
-### 📈 Stats avancées
+  ### 📈 Stats avancées
 
-* Distribution par fin
-* Lectures totales
-* Parties abandonnées
+  * Distribution par fin
+  * Lectures totales
+  * Parties abandonnées
 
-### 🚧 Brouillon / publié (visible uniquement si publié)
+  ### 🚧 Brouillon / publié (visible uniquement si publié)
 
-### 🧪 Mode preview (sans impacter les stats)
+  ### 🧪 Mode preview (sans impacter les stats)
 
-### 🖼️ Illustrations
+  ### 🖼️ Illustrations
 
-* Ajouter des images dans les scènes
+  * Ajouter des images dans les scènes
 
-### 🎨 UX/UI
+  ### 🎨 UX/UI
 
-* Interface améliorée (layout + responsive)
-* Messages d’erreur / succès visibles
-* Confirmation avant suppression (histoire/page/choix)
+  * Interface améliorée (layout + responsive)
+  * Messages d’erreur / succès visibles
+  * Confirmation avant suppression (histoire/page/choix)
 
----
+  ---
 
-# ✅ **18/20 — Palier haut (qualité, features avancées)**
+  # ✅ **18/20 — Palier haut (qualité, features avancées)**
 
-### 🌳 Arbre des histoires (côté auteur)
+  ### 🌳 Arbre des histoires (côté auteur)
 
-* Visualisation graphique des pages + choix
+  * Visualisation graphique des pages + choix
 
-### 🌳 Arbre du parcours (côté lecteur)
+  ### 🌳 Arbre du parcours (côté lecteur)
 
-* Visualisation du chemin parcouru pendant une partie
+  * Visualisation du chemin parcouru pendant une partie
 
-### 🖼️ Illustrations interactives
+  ### 🖼️ Illustrations interactives
 
-* Certaines zones d’une image mènent à une autre scène (hotspots)
+  * Certaines zones d’une image mènent à une autre scène (hotspots)
 
-### 🎲 Système de hasard
+  ### 🎲 Système de hasard
 
-* Jet de dés influençant les choix accessibles
+  * Jet de dés influençant les choix accessibles
 
-### 🧪 Qualité logicielle
+  ### 🧪 Qualité logicielle
 
-* Tests unitaires (logique métier)
-* Tests d’intégration (endpoints API)
+  * Tests unitaires (logique métier)
+  * Tests d’intégration (endpoints API)
 
-### 🐳 Docker
+  ### 🐳 Docker
 
-* Dockerfile backend (+ frontend si possible)
-* docker-compose pour app + BDD
+  * Dockerfile backend (+ frontend si possible)
+  * docker-compose pour app + BDD
 
-### ☁️ Déploiement
+  ### ☁️ Déploiement
 
-* Déploiement back (API)
-* Déploiement front (si possible)
-* Fournir URL
+  * Déploiement back (API)
+  * Déploiement front (si possible)
+  * Fournir URL
 
 

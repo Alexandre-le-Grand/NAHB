@@ -14,11 +14,17 @@ interface Story {
   statut: 'brouillon' | 'publié';
 }
 
+interface PlaythroughData {
+  StoryId: number;
+  status: 'in_progress' | 'finished';
+}
+
 export default function Library() {
   const navigate = useNavigate();
   const [stories, setStories] = useState<Story[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [playthroughStatuses, setPlaythroughStatuses] = useState<Record<number, 'in_progress' | 'finished'>>({});
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,25 +50,44 @@ export default function Library() {
       setLoading(false); // Stop loading if no user to prevent infinite loading state
       return;
     } // Ensure fetchStories is called only when user is available
-    async function fetchStories() {
+    async function fetchData() {
       if (!user) return;
 
       try {
+        const token = localStorage.getItem('token');
+        // On lance les deux requêtes en parallèle pour gagner du temps
+        const [storiesRes, playthroughsRes] = await Promise.all([
+          fetch('http://localhost:5000/stories', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch('http://localhost:5000/users/me/playthroughs', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        ]);
+
         const res = await fetch('http://localhost:5000/stories', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        const data: Story[] = await res.json();
-        setStories(data);
+        const storiesData: Story[] = await storiesRes.json();
+        const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
+
+        // On crée un objet pour un accès rapide aux statuts de lecture
+        const statusesMap: Record<number, 'in_progress' | 'finished'> = {};
+        if (Array.isArray(playthroughsData)) {
+          playthroughsData.forEach(p => statusesMap[p.StoryId] = p.status);
+        }
+        setPlaythroughStatuses(statusesMap);
+        setStories(storiesData);
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
-    } 
+    }
 
-    fetchStories();
+    fetchData();
   }, [user]);
 
   const handlePublish = async (storyId: number) => {
@@ -124,10 +149,12 @@ export default function Library() {
             Bibliothèque
         </Link>
         <div style={styles.navRight}>
-            <div style={styles.userInfo}>
-                <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
-                <span style={styles.username}>{user.username}</span>
-            </div>
+            <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={styles.userInfo}>
+                    <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
+                    <span style={styles.username}>{user.username}</span>
+                </div>
+            </Link>
             <button onClick={handleLogout} style={styles.logoutBtn}>
                 Déconnexion
             </button>
@@ -144,15 +171,30 @@ export default function Library() {
             <div key={story.id} style={styles.storyCard}>
               <h3 style={styles.storyTitle}>{story.title}</h3>
               <p style={styles.storyDescription}>{story.description}</p>
-              <div style={styles.storyMeta}>
-                <span style={{
-                  ...styles.badge,
-                  backgroundColor: story.statut === 'publié' ? "rgba(16, 185, 129, 0.2)" : "rgba(251, 191, 36, 0.2)",
-                  color: story.statut === 'publié' ? "#6ee7b7" : "#fcd34d",
-                  border: story.statut === 'publié' ? "1px solid #10b981" : "1px solid #facc15"
-                }}>
-                  {story.statut.toUpperCase()}
-                </span>
+              <div style={{...styles.storyMeta, justifyContent: 'space-between'}}>
+                <div></div>
+                <div>
+                  {playthroughStatuses[story.id] && (
+                    <span style={{
+                      ...styles.badge,
+                      backgroundColor: playthroughStatuses[story.id] === 'finished' ? "rgba(16, 185, 129, 0.2)" : "rgba(56, 189, 248, 0.2)",
+                      color: playthroughStatuses[story.id] === 'finished' ? "#6ee7b7" : "#7dd3fc",
+                      border: playthroughStatuses[story.id] === 'finished' ? "1px solid #10b981" : "1px solid #38bdf8"
+                    }}>
+                      {playthroughStatuses[story.id] === 'finished' ? 'FINI' : 'EN COURS'}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span style={{
+                    ...styles.badge,
+                    backgroundColor: story.statut === 'publié' ? "rgba(139, 92, 246, 0.2)" : "rgba(251, 191, 36, 0.2)",
+                    color: story.statut === 'publié' ? "#c4b5fd" : "#fcd34d",
+                    border: story.statut === 'publié' ? "1px solid #8b5cf6" : "1px solid #facc15"
+                  }}>
+                    {story.statut.toUpperCase()}
+                  </span>
+                </div>
               </div>
               <div style={styles.storyActions}>
                 {user?.role === 'admin' && (

@@ -49,22 +49,19 @@ export default function MyStory() {
       if (!user) return;
 
       try {
-        // 1. On récupère TOUTES les histoires, comme dans Library.tsx
-        const res = await fetch(`http://localhost:5000/stories`, {
+        // On utilise la route dédiée pour récupérer uniquement les histoires de l'auteur
+        const res = await fetch(`http://localhost:5000/stories/mine`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
         if (!res.ok) {
-          throw new Error(`Le serveur a répondu avec le statut ${res.status}`);
+          throw new Error(`Erreur lors de la récupération de vos histoires : ${res.status}`);
         }
 
         const data: Story[] = await res.json();
-        
-        // 2. On filtre les histoires pour ne garder que celles de l'utilisateur connecté
-        const userStories = data.filter(story => story.authorId === user.id);
-        setStories(userStories);
+        setStories(data);
 
       } catch (err) {
         console.error(err);

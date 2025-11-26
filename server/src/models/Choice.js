@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize')
 const sequelize = require('../config/db')
-const Page = require('./Page')
 
 const Choice = sequelize.define('Choice', {
   text: {

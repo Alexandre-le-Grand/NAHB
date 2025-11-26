@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
 interface Choice {
   id: number;
@@ -19,15 +19,23 @@ interface Story {
   title: string;
   description: string;
   startPageId: number;
+  AuthorId: number; // Ajout de l'ID de l'auteur
   pages: Page[];
+}
+
+interface User {
+  id: number;
+  username: string;
 }
 
 export default function ReadStory() {
   // route can provide either `storyId` (from App routes) or `id` depending on usage
   const params = useParams<{ storyId?: string; id?: string }>();
+  const navigate = useNavigate();
   const id = params.storyId || params.id;
   const [story, setStory] = useState<Story | null>(null);
   const [currentPage, setCurrentPage] = useState<Page | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +45,12 @@ export default function ReadStory() {
         setLoading(false);
         return;
       }
+
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setCurrentUser(JSON.parse(userData));
+      }
+
       try {
         const res = await fetch(`http://localhost:5000/stories/${id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -46,6 +60,7 @@ export default function ReadStory() {
 
         const data: Story = await res.json();
 
+        // On inclut l'AuthorId pour vérifier les permissions côté client
         if (!data.pages || data.pages.length === 0) {
           setStory(null);
           setLoading(false);
@@ -68,11 +83,82 @@ export default function ReadStory() {
     fetchStory();
   }, [id]);
 
+  // Effet pour marquer l'histoire comme "en cours"
+  useEffect(() => {
+    if (id) {
+      const startPlaythrough = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+          await fetch(`http://localhost:5000/stories/playthroughs/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ storyId: id }),
+          });
+        } catch (err) {
+          console.error("Erreur lors du marquage 'en cours':", err);
+        }
+      };
+      startPlaythrough();
+    }
+  }, [id]);
+
+  // Effet pour enregistrer la fin de la partie
+  useEffect(() => {
+    if (currentPage && currentPage.isEnding && story) {
+      const recordEnding = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          await fetch(`http://localhost:5000/stories/playthroughs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ storyId: story.id, endingPageId: currentPage.id }),
+          });
+          // Pas besoin de gérer la réponse ici, c'est une action en arrière-plan.
+        } catch (err) {
+          console.error("Erreur lors de l'enregistrement de la fin de partie:", err);
+        }
+      };
+      recordEnding();
+    }
+  }, [currentPage, story]);
+
   const handleChoice = (nextPageId: number | null) => {
     if (!story || !story.pages) return;
 
     const nextPage = story.pages.find(p => p.id === nextPageId) || null;
     setCurrentPage(nextPage);
+  };
+
+  const handleDeleteStory = async () => {
+    if (!story) return;
+
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette histoire ? Cette action est irréversible.")) {
+      try {
+        const res = await fetch(`http://localhost:5000/stories/${story.id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'La suppression a échoué.');
+        }
+
+        alert('Histoire supprimée avec succès.');
+        navigate('/library'); // Redirige vers la bibliothèque après suppression
+      } catch (err) {
+        console.error(err);
+        alert((err as Error).message || 'Une erreur est survenue.');
+      }
+    }
   };
 
   if (loading) return <div>Chargement...</div>;
@@ -121,7 +207,14 @@ export default function ReadStory() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, alignItems: 'center' }}>
           <Link to="/library" style={{ color: '#38bdf8', textDecoration: 'none', background: 'transparent', padding: '8px 12px' }}>⟵ Retour à la bibliothèque</Link>
-          <div style={{ color: '#94a3b8', fontSize: 13 }}>Partage | Ajouter aux favoris</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13 }}>Partage | Ajouter aux favoris</div>
+            {currentUser && story && currentUser.id === story.AuthorId && (
+              <button onClick={handleDeleteStory} style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid #ef4444', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                Supprimer l'histoire
+              </button>
+            )}
+          </div>
         </div>
       </main>
     </div>

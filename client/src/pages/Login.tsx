@@ -24,7 +24,7 @@ export default function Login() {
         setError(data.message || 'Une erreur est survenue');
       } else {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('user', JSON.stringify(data.user)); // Ajout de cette ligne cruciale
         navigate('/acceuil'); 
       }
     } catch (err) {

@@ -6,6 +6,7 @@ const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
 // CRUD de base
 router.post('/', verifyToken, storyController.createStory);
 router.get('/', verifyToken, storyController.getAllStories);
+router.get('/mine', verifyToken, storyController.getMyStories);
 router.get('/:id', storyController.getStoryById);
 router.put('/:id', verifyToken, storyController.updateStory);
 router.delete('/:id', verifyToken, storyController.deleteStory);
@@ -30,6 +31,12 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Publication (admin only)
 router.put('/:id/publish', verifyToken, verifyAdmin, storyController.publishStory);
+
+// Route pour enregistrer une partie terminée
+router.post('/playthroughs', verifyToken, storyController.recordPlaythrough);
+
+// Route pour marquer une histoire comme "en cours"
+router.post('/playthroughs/start', verifyToken, storyController.startPlaythrough);
 
 router.get('/:id/full', verifyToken, storyController.getFullStory);
 

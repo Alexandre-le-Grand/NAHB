@@ -175,11 +175,9 @@ export default function PageStoryCreator(): JSX.Element {
       if (!res.ok) {
         setError(data.message || "Erreur serveur lors de la création.");
       } else {
-        setMessage("Histoire créée avec id: " + (data.storyId ?? "—"));
-        setTitle("");
-        setDescription("");
-        setPages([]);
-        resetEditor();
+        setMessage("Histoire créée avec succès ! Redirection...");
+        // Redirige l'utilisateur vers la page de ses histoires après un court délai
+        setTimeout(() => navigate('/my-stories'), 1500);
       }
     } catch (err) {
       console.error(err);
@@ -202,10 +200,12 @@ export default function PageStoryCreator(): JSX.Element {
             Story Creator
         </Link>
         <div style={styles.navRight}>
-            <div style={styles.userInfo}>
-                <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
-                <span style={styles.username}>{user.username}</span>
-            </div>
+            <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={styles.userInfo}>
+                    <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
+                    <span style={styles.username}>{user.username}</span>
+                </div>
+            </Link>
             <button onClick={handleLogout} style={styles.logoutBtn}>
                 Déconnexion
             </button>

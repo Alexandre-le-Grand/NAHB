@@ -1,4 +1,5 @@
-const { Story, Page, Choice, User } = require('../models/index');
+const { Story, Page, Choice, User, Playthrough } = require('../models/index');
+const { Op } = require('sequelize');
 
 
 // CREATE STORY SIMPLE
@@ -27,8 +28,14 @@ const getAllStories = async (req, res) => {
         if (req.user && req.user.role === 'admin') {
             stories = await Story.findAll();
         } else {
+            // Les utilisateurs non-admin voient les histoires publiées ET leurs propres brouillons.
             stories = await Story.findAll({
-                where: { statut: 'publié' },
+                where: {
+                    [Op.or]: [
+                        { statut: 'publié' },
+                        { AuthorId: req.user ? req.user.id : null }
+                    ]
+                },
             });
         }
 
@@ -38,9 +45,23 @@ const getAllStories = async (req, res) => {
     }
 };
 
+// GET CURRENT USER'S STORIES
+const getMyStories = async (req, res) => {
+    try {
+        const authorId = req.user.id;
+        const stories = await Story.findAll({
+            where: { AuthorId: authorId },
+        });
+        res.json(stories);
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur lors de la récupération de vos histoires.", error: err.message });
+    }
+};
+
 // GET STORY BY ID
 const getStoryById = async (req, res) => {
     try {
+        // On inclut l'AuthorId pour vérifier les permissions côté client
             const story = await Story.findByPk(req.params.id, {
                 include: [
                     {
@@ -53,7 +74,8 @@ const getStoryById = async (req, res) => {
                             }
                         ]
                     }
-                ]
+                ],
+                attributes: { include: ['AuthorId'] }
             });
 
         if (!story) return res.status(404).json({ message: "Story introuvable" });
@@ -202,14 +224,66 @@ const publishStory = async (req, res) => {
     }
 };
 
-module.exports = {
-    createStory,
-    getAllStories,
-    getStoryById,
-    updateStory,
-    deleteStory,
-    createStoryWithPages,
-    publishStory
+// START A PLAYTHROUGH (mark as 'in_progress')
+const startPlaythrough = async (req, res) => {
+    try {
+        const { storyId } = req.body;
+        const userId = req.user.id;
+
+        if (!storyId) {
+            return res.status(400).json({ message: "L'identifiant de l'histoire est requis." });
+        }
+
+        // Find or create a playthrough. If it exists and is 'finished', we don't change it.
+        // If it exists and is 'in_progress', we return it.
+        // If it doesn't exist, we create it as 'in_progress'.
+        const [playthrough, created] = await Playthrough.findOrCreate({
+            where: { UserId: userId, StoryId: storyId },
+            defaults: { EndingPageId: null, status: 'in_progress' } // Use null for EndingPageId when in progress
+        });
+
+        // If it was already finished, we don't want to revert its status
+        if (!created && playthrough.status === 'finished') {
+            return res.status(200).json({ message: "Partie déjà terminée.", playthrough });
+        }
+
+        res.status(created ? 201 : 200).json({ message: created ? "Partie commencée." : "Partie déjà en cours.", playthrough });
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur lors du démarrage de la partie.", error: err.message });
+    }
+};
+
+// RECORD A COMPLETED PLAYTHROUGH (update status to 'finished')
+const recordPlaythrough = async (req, res) => {
+    try {
+        const { storyId, endingPageId } = req.body;
+        const userId = req.user.id;
+
+        if (!storyId || endingPageId === undefined || endingPageId === null) { // endingPageId peut être 0, donc vérifier undefined/null
+            return res.status(400).json({ message: "L'identifiant de l'histoire et de la page de fin sont requis." });
+        }
+
+        // Try to find an existing playthrough (either in_progress or finished)
+        let playthrough = await Playthrough.findOne({ where: { UserId: userId, StoryId: storyId } });
+
+        if (playthrough) {
+            // Update existing playthrough to 'finished'
+            await playthrough.update({ EndingPageId: endingPageId, status: 'finished' });
+            res.status(200).json({ message: "Partie mise à jour à 'finie'.", playthrough });
+        } else {
+            // If no playthrough exists (e.g., user jumped directly to an ending), create a new one as 'finished'
+            playthrough = await Playthrough.create({
+                UserId: userId,
+                StoryId: storyId,
+                EndingPageId: endingPageId,
+                status: 'finished'
+            });
+            res.status(201).json({ message: "Partie enregistrée comme 'finie'.", playthrough });
+        }
+
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur lors de l'enregistrement de la partie.", error: err.message });
+    }
 };
 
 // Récupère une story complète (pages, choix et auteur) — utilisée par la route /:id/full
@@ -222,7 +296,6 @@ const getFullStory = async (req, res) => {
                     as: 'pages',
                     include: [
                         { model: Choice, as: 'choicesFrom' },
-                        { model: Choice, as: 'choicesTo' }
                     ]
                 },
                 { model: require('../models').User, as: 'author' }
@@ -231,14 +304,21 @@ const getFullStory = async (req, res) => {
 
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
-        res.json(story);
+        // Convertir l'instance Sequelize en objet simple et s'assurer que les pages ont un tableau `choices`
+        const plain = story.toJSON ? story.toJSON() : story;
+        if (plain.pages && Array.isArray(plain.pages)) {
+            plain.pages = plain.pages.map(p => ({
+                ...p,
+                // préférer `choices` existant mais se rabattre sur l'alias `choicesFrom` utilisé dans les associations
+                choices: p.choices || p.choicesFrom || []
+            }));
+        }
+
+        res.json(plain);
     } catch (err) {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
-
-// Export the new handler
-module.exports.getFullStory = getFullStory;
 
 // Dev helper: create a sample story with pages and choices for UI testing.
 const seedTestStory = async (req, res) => {
@@ -280,8 +360,6 @@ const seedTestStory = async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 };
-
-module.exports.seedTestStory = seedTestStory;
 
 // Dev-only: seed multiple nice example stories (3) with pages + choices
 const seedSampleStories = async (req, res) => {
@@ -371,4 +449,18 @@ const seedSampleStories = async (req, res) => {
     }
 };
 
-module.exports.seedSampleStories = seedSampleStories;
+module.exports = {
+    createStory,
+    getAllStories,
+    getMyStories,
+    getStoryById,
+    updateStory,
+    deleteStory,
+    createStoryWithPages,
+    publishStory,
+    recordPlaythrough,
+    getFullStory,
+    startPlaythrough, // Export the new function
+    seedTestStory,
+    seedSampleStories
+};
