@@ -2,9 +2,7 @@ const Story = require('../models/Story');
 const Page = require('../models/Page');
 const Choice = require('../models/Choice');
 
-// -----------------------------
 // CREATE STORY SIMPLE
-// -----------------------------
 const createStory = async (req, res) => {
     try {
         const { title, description } = req.body;
@@ -22,21 +20,26 @@ const createStory = async (req, res) => {
     }
 };
 
-// -----------------------------
-// GET ALL STORIES
-// -----------------------------
+// GET ALL STORIES (filtrage selon rôle)
 const getAllStories = async (req, res) => {
     try {
-        const stories = await Story.findAll();
+        let stories;
+
+        if (req.user && req.user.role === 'admin') {
+            stories = await Story.findAll();
+        } else {
+            stories = await Story.findAll({
+                where: { statut: 'publié' },
+            });
+        }
+
         res.json(stories);
     } catch (err) {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
 
-// -----------------------------
 // GET STORY BY ID
-// -----------------------------
 const getStoryById = async (req, res) => {
     try {
         const story = await Story.findByPk(req.params.id);
@@ -47,9 +50,7 @@ const getStoryById = async (req, res) => {
     }
 };
 
-// -----------------------------
 // UPDATE STORY
-// -----------------------------
 const updateStory = async (req, res) => {
     try {
         const story = await Story.findByPk(req.params.id);
@@ -65,9 +66,7 @@ const updateStory = async (req, res) => {
     }
 };
 
-// -----------------------------
 // DELETE STORY
-// -----------------------------
 const deleteStory = async (req, res) => {
     try {
         const story = await Story.findByPk(req.params.id);
@@ -83,9 +82,7 @@ const deleteStory = async (req, res) => {
     }
 };
 
-// -----------------------------
 // CREATE STORY WITH PAGES + CHOICES
-// -----------------------------
 const createStoryWithPages = async (req, res) => {
     const t = await Story.sequelize.transaction();
     try {
@@ -94,15 +91,13 @@ const createStoryWithPages = async (req, res) => {
         if (!title || !pages || pages.length === 0)
             return res.status(400).json({ message: "Titre et pages obligatoires" });
 
-        // 1️⃣ Création de l'histoire
         const story = await Story.create({
             title,
             description,
             AuthorId: req.user.id
         }, { transaction: t });
 
-        // 2️⃣ Création des pages
-        const pageMap = []; // { index, id, isEnding }
+        const pageMap = [];
         for (let i = 0; i < pages.length; i++) {
             const p = await Page.create({
                 content: pages[i].content,
@@ -113,7 +108,6 @@ const createStoryWithPages = async (req, res) => {
             pageMap.push({ index: i, id: p.id, isEnding: pages[i].isEnding || false });
         }
 
-        // 3️⃣ Création des choix (max 2 par page, sauf pages finales)
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             if (!pageMap[i].isEnding && page.choices && page.choices.length > 0) {
@@ -129,7 +123,6 @@ const createStoryWithPages = async (req, res) => {
             }
         }
 
-        // 4️⃣ Définir la startPageId
         await story.update({ startPageId: pageMap[0].id }, { transaction: t });
 
         await t.commit();
@@ -141,9 +134,7 @@ const createStoryWithPages = async (req, res) => {
     }
 };
 
-// -----------------------------
 // PUBLISH STORY (admin only)
-// -----------------------------
 const publishStory = async (req, res) => {
     try {
         const story = await Story.findByPk(req.params.id);
@@ -156,9 +147,6 @@ const publishStory = async (req, res) => {
     }
 };
 
-// -----------------------------
-// EXPORT
-// -----------------------------
 module.exports = {
     createStory,
     getAllStories,

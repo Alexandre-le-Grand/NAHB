@@ -35,14 +35,13 @@ export default function Library() {
       if (!user) return;
 
       try {
-        const res = await fetch('http://localhost:5000/stories');
+        const res = await fetch('http://localhost:5000/stories', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
         const data: Story[] = await res.json();
-
-        if (user.role === 'admin') {
-          setStories(data);
-        } else {
-          setStories(data.filter(story => story.statut === 'publié'));
-        }
+        setStories(data);
       } catch (err) {
         console.error(err);
       } finally {
