@@ -114,6 +114,16 @@ const Accueil = () => {
                             desc="Explorez les récits de la communauté."
                             color="#818cf8"
                         />
+
+                        {(user.role === "admin" || user.role === "author") && (
+                        <HoverCard 
+                            to="/my-stories" 
+                            title="Mes histoires" 
+                            icon="📚" 
+                            desc="Explorez les récits de la communauté."
+                            color="#818cf8"
+                        />
+                        )}
                     </div>
                 </div>
             </main>
