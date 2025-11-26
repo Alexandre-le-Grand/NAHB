@@ -43,7 +43,7 @@ export default function UserList() {
   const handleDelete = async (id: number) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) return;
 
-    await fetch(`http://localhost:5000/auth/users/${id}`, {
+    await fetch(`http://localhost:5000/users/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -51,20 +51,23 @@ export default function UserList() {
     setUsers(users.filter(u => u.id !== id));
   };
 
-  const handleRoleChange = async (id: number, currentRole: string) => {
-    const newRole = currentRole === 'user' ? 'admin' : 'user';
+ const handleRoleChange = async (id: number, currentRole: string) => {
+  const roles = ["user", "author", "admin"];
+  const currentIndex = roles.indexOf(currentRole);
+  const newRole = roles[(currentIndex + 1) % roles.length];
 
-    await fetch(`http://localhost:5000/auth/users/${id}/role`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ role: newRole })
-    });
+  await fetch(`http://localhost:5000/users/${id}/role`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ role: newRole })
+  });
 
-    setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u));
-  };
+  setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u));
+};
+
 
   const logout = () => {
     localStorage.removeItem('token');
