@@ -98,7 +98,7 @@ const Accueil = () => {
                         )}
                         
                         <HoverCard 
-                            to="/create-story" 
+                            to="/story-creator" 
                             title="Créer une Histoire" 
                             icon="✍️" 
                             desc="Tissez votre propre toile narrative."
