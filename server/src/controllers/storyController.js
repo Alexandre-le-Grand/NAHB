@@ -79,7 +79,7 @@ const updateStory = async (req, res) => {
         const story = await Story.findByPk(req.params.id);
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
-        if (story.AuthorId !== req.user.id)
+        if (story.AuthorId !== req.user.id && req.user.role !== 'admin')
             return res.status(403).json({ message: "Accès refusé" });
 
         await story.update(req.body);
@@ -95,7 +95,7 @@ const deleteStory = async (req, res) => {
         const story = await Story.findByPk(req.params.id);
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
-        if (story.AuthorId !== req.user.id)
+        if (story.AuthorId !== req.user.id && req.user.role !== 'admin')
             return res.status(403).json({ message: "Accès refusé" });
 
         await story.destroy();

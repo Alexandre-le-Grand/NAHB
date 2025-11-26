@@ -43,7 +43,7 @@ export default function Library() {
     if (!user) {
       setLoading(false); // Stop loading if no user to prevent infinite loading state
       return;
-    }
+    } // Ensure fetchStories is called only when user is available
     async function fetchStories() {
       if (!user) return;
 
@@ -88,6 +88,27 @@ export default function Library() {
       console.error(err);
     }
   };
+
+  const handleDelete = async (storyId: number) => {
+    if (!user || user.role !== 'admin') return; // Only admin can delete from Library
+    if (!window.confirm("Voulez-vous vraiment supprimer cette histoire ? Cette action est irréversible.")) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/stories/${storyId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!res.ok) throw new Error('Impossible de supprimer l\'histoire');
+
+      setStories(prev => prev.filter(story => story.id !== storyId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
 
   if (!user) return <div style={styles.container}></div>; // Render empty container while redirecting or user is null
   if (loading) return <div style={styles.loadingContainer}><p style={styles.loadingText}>Chargement des histoires...</p></div>;
@@ -134,8 +155,14 @@ export default function Library() {
                 </span>
               </div>
               <div style={styles.storyActions}>
-                {user?.role === 'admin' && story.statut === 'brouillon' && (
-                  <button onClick={() => handlePublish(story.id)} style={{...styles.button, ...styles.buttonPrimary}}>Publier</button>
+                {user?.role === 'admin' && (
+                  <>
+                    {story.statut === 'brouillon' && (
+                      <button onClick={() => handlePublish(story.id)} style={{...styles.button, ...styles.buttonPrimary}}>Publier</button>
+                    )}
+                    <Link to={`/story-creator/${story.id}`} style={{...styles.button, ...styles.buttonSecondary, textDecoration: 'none', textAlign: 'center'}}>Modifier</Link>
+                    <button onClick={() => handleDelete(story.id)} style={{...styles.button, ...styles.buttonDelete}}>Supprimer</button>
+                  </>
                 )}
                 {/* Add a link to play the story later */}
                 <Link to={`/play/${story.id}`} style={{...styles.button, ...styles.buttonSecondary, textDecoration: 'none', textAlign: 'center'}}>
@@ -336,5 +363,10 @@ const styles: any = {
       backgroundColor: "#334155",
       color: "#cbd5e1",
       border: "1px solid #475569"
+    },
+    buttonDelete: {
+      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      color: '#fca5a5',
+      border: '1px solid #ef4444'
     },
 };
