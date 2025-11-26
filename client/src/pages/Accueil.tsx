@@ -97,13 +97,15 @@ const Accueil = () => {
                             />
                         )}
                         
-                        <HoverCard 
-                            to="/story-creator" 
-                            title="Créer une Histoire" 
-                            icon="✍️" 
-                            desc="Tissez votre propre toile narrative."
-                            color="#38bdf8"
-                        />
+                        {(user.role === "admin" || user.role === "author") && (
+                            <HoverCard 
+                                to="/story-creator" 
+                                title="Créer une Histoire" 
+                                icon="✍️" 
+                                desc="Tissez votre propre toile narrative."
+                                color="#38bdf8"
+                            />
+                        )}
 
                         <HoverCard 
                             to="/library" 
