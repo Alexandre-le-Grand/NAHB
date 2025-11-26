@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 type ChoiceDraft = {
   id: string;
@@ -16,6 +17,7 @@ type PageDraft = {
 const genId = (prefix = "") => `${prefix}${Math.random().toString(36).slice(2, 9)}`;
 
 export default function PageStoryCreator(): JSX.Element {
+  const navigate = useNavigate();
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [pages, setPages] = useState<PageDraft[]>([]);
@@ -25,6 +27,24 @@ export default function PageStoryCreator(): JSX.Element {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem("user");
+    
+    if (!token) {
+        navigate('/login');
+    } else if (userData) {
+        setUser(JSON.parse(userData));
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+  };
 
   const resetEditor = () => {
     setContent("");
@@ -149,7 +169,7 @@ export default function PageStoryCreator(): JSX.Element {
       if (!res.ok) {
         setError(data.message || "Erreur serveur lors de la création.");
       } else {
-        setMessage("Histoire créée avec id: " + (data.storyId ?? "—"));
+        setMessage("Histoire créée avec passion");
         setTitle("");
         setDescription("");
         setPages([]);
@@ -163,122 +183,418 @@ export default function PageStoryCreator(): JSX.Element {
     }
   };
 
+  if (!user) return <div style={styles.container}></div>;
+
   return (
-    <div style={{ maxWidth: 1000, margin: "20px auto", padding: 16 }}>
-      <h1>Créer une histoire</h1>
-      <input
-        placeholder="Titre"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ width: "100%", padding: 8, fontSize: 16, marginBottom: 12 }}
-      />
-      <textarea
-        placeholder="Description (optionnelle)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        style={{ width: "100%", padding: 8, minHeight: 64, marginBottom: 16 }}
-      />
-      <section style={{ border: "1px solid #333", padding: 12, borderRadius: 8, marginBottom: 16 }}>
-        <h2>Éditeur de page</h2>
-        <textarea
-          placeholder="Contenu de la page"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          style={{ width: "100%", minHeight: 100, padding: 8 }}
-        />
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={isEnding}
-            onChange={(e) => {
-              setIsEnding(e.target.checked);
-              if (e.target.checked) setChoices([]);
-              else if (choices.length === 0) setChoices([{ id: genId("c_"), text: "", nextPageIndex: null }]);
-            }}
-          />
-          Page finale ?
-        </label>
-        {!isEnding && (
-          <>
-            <div style={{ marginTop: 8 }}><strong>Choix (max 2)</strong></div>
-            {choices.map((c, idx) => (
-              <div key={c.id} style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <input
-                  style={{ flex: 1 }}
-                  value={c.text}
-                  placeholder={`Texte du choix ${idx + 1}`}
-                  onChange={(e) => {
-                    const copy = [...choices];
-                    copy[idx] = { ...copy[idx], text: e.target.value };
-                    setChoices(copy);
-                  }}
-                />
-                <input
-                  style={{ width: 120 }}
-                  type="number"
-                  placeholder={pages.length ? `next page (0..${pages.length})` : "index"}
-                  value={c.nextPageIndex ?? ""}
-                  onChange={(e) => {
-                    const copy = [...choices];
-                    const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
-                    copy[idx] = { ...copy[idx], nextPageIndex: isNaN(v as any) ? null : v };
-                    setChoices(copy);
-                  }}
-                />
-                {choices.length > 1 && (
-                  <button type="button" onClick={() => removeChoiceFromEditor(c.id)} style={{ background: "#ff7675", border: "none", color: "#fff", padding: "6px 8px" }}>X</button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={addChoiceToEditor} disabled={choices.length >= 2} style={{ marginTop: 8 }}>Ajouter un choix</button>
-          </>
-        )}
-        <div style={{ marginTop: 12 }}>
-          <button type="button" onClick={addPage}>➕ Ajouter la page</button>
-        </div>
-      </section>
-      <section style={{ marginBottom: 16 }}>
-        <h2>Pages créées ({pages.length})</h2>
-        {pages.length === 0 && <div style={{ color: "#888" }}>Aucune page pour l'instant</div>}
-        {pages.map((p, i) => (
-          <div key={p.id} style={{ border: "1px solid #222", padding: 12, borderRadius: 8, marginBottom: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <div><strong>Page {i}</strong> {p.isEnding && <span style={{ color: "#e11", marginLeft: 8 }}>FINALE</span>}</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => movePage(i, -1)} disabled={i === 0}>↑</button>
-                <button onClick={() => movePage(i, 1)} disabled={i === pages.length - 1}>↓</button>
-                <button onClick={() => deletePage(i)} style={{ background: "#ff6b6b", color: "#fff" }}>Suppr</button>
-              </div>
+    <div style={styles.container}>
+      <div style={styles.blob1}></div>
+      <div style={styles.blob2}></div>
+
+      <nav style={styles.navbar}>
+        <Link to="/acceuil" style={styles.logo}>
+            <span style={{ fontSize: "24px", marginRight: "10px" }}>✍️</span> 
+            Story Creator
+        </Link>
+        <div style={styles.navRight}>
+            <div style={styles.userInfo}>
+                <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
+                <span style={styles.username}>{user.username}</span>
             </div>
-            <p style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{p.content}</p>
-            {!p.isEnding && (
-              <>
-                <div><strong>Choix :</strong>
-                  {(!p.choices || p.choices.length === 0) && <div style={{ color: "#888" }}>Aucun choix</div>}
-                  <ul>
-                    {p.choices.map((c, ci) => (
-                      <li key={c.id}>
-                        <input value={c.text} onChange={(e) => updateChoiceInPage(i, ci, { text: e.target.value })} style={{ width: "60%" }} />
-                        <input type="number" placeholder={`next (0..${Math.max(0, pages.length - 1)})`} value={c.nextPageIndex ?? ""} onChange={(e) => {
-                          const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
-                          updateChoiceInPage(i, ci, { nextPageIndex: isNaN(v as any) ? null : v });
-                        }} style={{ width: 80, marginLeft: 8 }} />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <button onClick={() => addChoiceToPage(i)} disabled={p.choices.length >= 2}>Ajouter un choix (page)</button>
-              </>
-            )}
+            <button onClick={handleLogout} style={styles.logoutBtn}>
+                Déconnexion
+            </button>
+        </div>
+      </nav>
+
+      <main style={styles.main}>
+        <h1 style={styles.pageTitle}>Créer une nouvelle histoire</h1>
+        
+        <div style={styles.formGrid}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Titre de l'histoire</label>
+            <input
+              placeholder="Le Château des Ombres"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={styles.input}
+            />
           </div>
-        ))}
-      </section>
-      <div style={{ display: "flex", gap: 12 }}>
-        <button onClick={submitStory} disabled={loading}>{loading ? "Création..." : "🚀 Créer l'histoire"}</button>
-        <button onClick={() => { setPages([]); resetEditor(); setTitle(""); setDescription(""); setMessage(null); setError(null); }}>Réinitialiser</button>
-      </div>
-      {error && <div style={{ marginTop: 12, color: "#ff6b6b" }}>{error}</div>}
-      {message && <div style={{ marginTop: 12, color: "#55efc4" }}>{message}</div>}
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Description (optionnelle)</label>
+            <textarea
+              placeholder="Une aventure sombre dans un château oublié..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{...styles.input, minHeight: 64}}
+            />
+          </div>
+        </div>
+
+        <section style={styles.card}>
+          <h2 style={styles.cardHeader}>Éditeur de page</h2>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Contenu de la page</label>
+            <textarea
+              placeholder="Vous vous trouvez devant une immense porte en bois..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              style={{...styles.input, minHeight: 100}}
+            />
+          </div>
+          <label style={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={isEnding}
+              onChange={(e) => {
+                setIsEnding(e.target.checked);
+                if (e.target.checked) setChoices([]);
+                else if (choices.length === 0) setChoices([{ id: genId("c_"), text: "", nextPageIndex: null }]);
+              }}
+            />
+            Cette page est une fin
+          </label>
+          {!isEnding && (
+            <div style={{marginTop: 16}}>
+              <label style={styles.label}>Choix (max 2)</label>
+              {choices.map((c, idx) => (
+                <div key={c.id} style={styles.choiceEditorRow}>
+                  <input
+                    style={{...styles.input, flex: 1}}
+                    value={c.text}
+                    placeholder={`Texte du choix ${idx + 1}`}
+                    onChange={(e) => {
+                      const copy = [...choices];
+                      copy[idx] = { ...copy[idx], text: e.target.value };
+                      setChoices(copy);
+                    }}
+                  />
+                  <input
+                    style={{...styles.input, width: 120}}
+                    type="number"
+                    placeholder={pages.length ? `Page (0..${pages.length})` : "Index"}
+                    value={c.nextPageIndex ?? ""}
+                    onChange={(e) => {
+                      const copy = [...choices];
+                      const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
+                      copy[idx] = { ...copy[idx], nextPageIndex: isNaN(v as any) ? null : v };
+                      setChoices(copy);
+                    }}
+                  />
+                  {choices.length > 1 && (
+                    <button type="button" onClick={() => removeChoiceFromEditor(c.id)} style={styles.deleteBtnSmall}>X</button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={addChoiceToEditor} disabled={choices.length >= 2} style={{...styles.button, ...styles.buttonSecondary, marginTop: 8}}>Ajouter un choix</button>
+            </div>
+          )}
+          <div style={{ marginTop: 16, borderTop: '1px solid #334155', paddingTop: 16 }}>
+            <button type="button" onClick={addPage} style={{...styles.button, ...styles.buttonPrimary}}>➕ Ajouter la page à l'histoire</button>
+          </div>
+        </section>
+
+        <section>
+          <h2 style={styles.pageTitle}>Pages créées ({pages.length})</h2>
+          {pages.length === 0 && <div style={styles.emptyState}>Aucune page pour l'instant. Ajoutez-en une via l'éditeur ci-dessus.</div>}
+          {pages.map((p, i) => (
+            <div key={p.id} style={{...styles.card, marginBottom: 16}}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'center', gap: 8 }}>
+                <h3 style={styles.pageCardTitle}>
+                  Page {i} {p.isEnding && <span style={styles.endingBadge}>FINALE</span>}
+                </h3>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button style={styles.moveBtn} onClick={() => movePage(i, -1)} disabled={i === 0}>↑</button>
+                  <button style={styles.moveBtn} onClick={() => movePage(i, 1)} disabled={i === pages.length - 1}>↓</button>
+                  <button onClick={() => deletePage(i)} style={{...styles.button, ...styles.buttonDelete}}>Supprimer</button>
+                </div>
+              </div>
+              <p style={styles.pageContent}>{p.content}</p>
+              {!p.isEnding && (
+                <div style={{marginTop: 16}}>
+                  <label style={styles.label}>Choix :</label>
+                  {(!p.choices || p.choices.length === 0) && <div style={{color: "#64748b", fontSize: 14, marginTop: 4}}>Aucun choix. Cette page est un cul-de-sac.</div>}
+                  {p.choices.map((c, ci) => (
+                    <div key={c.id} style={styles.choiceEditorRow}>
+                      <input value={c.text} onChange={(e) => updateChoiceInPage(i, ci, { text: e.target.value })} style={{...styles.input, flex: 1}} />
+                      <input type="number" placeholder={`Page (0..${Math.max(0, pages.length - 1)})`} value={c.nextPageIndex ?? ""} onChange={(e) => {
+                        const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
+                        updateChoiceInPage(i, ci, { nextPageIndex: isNaN(v as any) ? null : v });
+                      }} style={{...styles.input, width: 120 }} />
+                    </div>
+                  ))}
+                  <button onClick={() => addChoiceToPage(i)} disabled={p.choices.length >= 2} style={{...styles.button, ...styles.buttonSecondary, marginTop: 8}}>Ajouter un choix</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
+
+        <div style={{...styles.card, marginTop: 24}}>
+          {error && <div style={styles.errorBox}>{error}</div>}
+          {message && <div style={styles.successBox}>{message}</div>}
+          <div style={{ display: "flex", gap: 12, justifyContent: 'flex-end' }}>
+            <button onClick={() => { setPages([]); resetEditor(); setTitle(""); setDescription(""); setMessage(null); setError(null); }} style={{...styles.button, ...styles.buttonSecondary}}>Réinitialiser</button>
+            <button onClick={submitStory} disabled={loading} style={{...styles.button, ...styles.buttonPrimary}}>{loading ? "Création en cours..." : "Créer l'histoire"}</button>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
+
+const styles: any = {
+    container: {
+        minHeight: "100vh",
+        backgroundColor: "#0f172a",
+        color: "#e2e8f0",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        position: "relative",
+        overflow: "hidden"
+    },
+    blob1: {
+        position: "absolute",
+        top: "-10%",
+        left: "-10%",
+        width: "500px",
+        height: "500px",
+        background: "radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%)",
+        filter: "blur(40px)",
+        zIndex: 0
+    },
+    blob2: {
+        position: "absolute",
+        bottom: "10%",
+        right: "-5%",
+        width: "400px",
+        height: "400px",
+        background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%)",
+        filter: "blur(40px)",
+        zIndex: 0
+    },
+    navbar: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "20px 40px",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        backdropFilter: "blur(10px)",
+        backgroundColor: "rgba(15, 23, 42, 0.8)",
+        position: "sticky",
+        top: 0,
+        zIndex: 10
+    },
+    logo: {
+        fontSize: "22px",
+        fontWeight: "800",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        letterSpacing: "-0.5px",
+        textDecoration: 'none'
+    },
+    navRight: {
+        display: "flex",
+        alignItems: "center",
+        gap: "20px"
+    },
+    userInfo: {
+        display: "flex",
+        alignItems: "center",
+        gap: "10px"
+    },
+    avatar: {
+        width: "35px",
+        height: "35px",
+        borderRadius: "50%",
+        backgroundColor: "#3b82f6",
+        color: "white",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        fontWeight: "bold",
+        fontSize: "14px"
+    },
+    username: {
+        fontWeight: "500",
+        fontSize: "15px"
+    },
+    logoutBtn: {
+        padding: "8px 16px",
+        backgroundColor: "transparent",
+        color: "#94a3b8",
+        border: "1px solid #334155",
+        borderRadius: "6px",
+        cursor: "pointer",
+        fontSize: "13px",
+        transition: "all 0.2s"
+    },
+    main: {
+        maxWidth: "1000px",
+        margin: "0 auto",
+        padding: "40px 20px",
+        position: "relative",
+        zIndex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px'
+    },
+    pageTitle: {
+        fontSize: "32px",
+        fontWeight: "800",
+        color: "white",
+        textAlign: 'center',
+        marginBottom: '16px'
+    },
+    formGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '20px'
+    },
+    card: {
+        backgroundColor: "rgba(30, 41, 59, 0.7)",
+        borderRadius: "16px",
+        padding: "25px",
+        border: "1px solid rgba(255,255,255,0.05)",
+        backdropFilter: "blur(10px)"
+    },
+    cardHeader: {
+        fontSize: "20px",
+        fontWeight: "700",
+        marginBottom: "20px",
+        color: "white",
+        borderBottom: "1px solid #334155",
+        paddingBottom: "15px"
+    },
+    inputGroup: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+    },
+    label: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "#94a3b8"
+    },
+    input: {
+        width: "100%",
+        padding: "10px 14px",
+        borderRadius: "8px",
+        backgroundColor: "#0f172a",
+        border: "1px solid #334155",
+        color: "#e2e8f0",
+        fontSize: "15px"
+    },
+    checkboxLabel: {
+      display: "inline-flex", 
+      alignItems: "center", 
+      gap: 8, 
+      marginTop: 16,
+      color: '#cbd5e1',
+      fontSize: 14,
+      cursor: 'pointer'
+    },
+    choiceEditorRow: {
+      display: "flex", 
+      gap: 8, 
+      marginTop: 8,
+      alignItems: 'center'
+    },
+    deleteBtnSmall: {
+      background: "#ef4444", 
+      border: "none", 
+      color: "#fff", 
+      borderRadius: '6px',
+      width: '38px',
+      height: '38px',
+      cursor: 'pointer',
+      fontWeight: 'bold'
+    },
+    button: {
+      padding: "10px 20px",
+      borderRadius: "8px",
+      border: "none",
+      fontSize: "15px",
+      fontWeight: "600",
+      cursor: "pointer",
+      transition: 'all 0.2s'
+    },
+    buttonPrimary: {
+      background: "linear-gradient(to right, #38bdf8, #818cf8)",
+      color: "white",
+    },
+    buttonSecondary: {
+      backgroundColor: "#334155",
+      color: "#cbd5e1",
+      border: "1px solid #475569"
+    },
+    buttonDelete: {
+      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      color: '#fca5a5',
+      padding: '6px 12px',
+      fontSize: '13px'
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px',
+      color: "#64748b",
+      backgroundColor: "rgba(30, 41, 59, 0.4)",
+      borderRadius: '12px',
+      border: '1px dashed #334155'
+    },
+    pageCardTitle: {
+      fontSize: "16px",
+      fontWeight: "700",
+      color: "white",
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px'
+    },
+    endingBadge: {
+      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      color: '#fca5a5',
+      padding: '2px 8px',
+      borderRadius: '20px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      border: '1px solid #ef4444'
+    },
+    moveBtn: {
+      backgroundColor: '#334155',
+      color: '#94a3b8',
+      border: 'none',
+      borderRadius: '4px',
+      width: '24px',
+      height: '24px',
+      cursor: 'pointer'
+    },
+    pageContent: {
+      whiteSpace: "pre-wrap", 
+      marginTop: 12, 
+      padding: '12px',
+      backgroundColor: '#0f172a',
+      borderRadius: '8px',
+      border: '1px solid #334155',
+      color: '#cbd5e1',
+      fontSize: 14
+    },
+    errorBox: {
+        padding: '1rem', 
+        background: 'rgba(239, 68, 68, 0.2)', 
+        border: '1px solid rgba(239, 68, 68, 0.5)', 
+        borderRadius: '12px', 
+        color: '#fca5a5', 
+        marginBottom: '1rem',
+        textAlign: 'center',
+        fontSize: '14px'
+    },
+    successBox: {
+        padding: '1rem', 
+        background: 'rgba(34, 197, 94, 0.2)', 
+        border: '1px solid rgba(34, 197, 94, 0.5)', 
+        borderRadius: '12px', 
+        color: '#86efac', 
+        marginBottom: '1rem',
+        textAlign: 'center',
+        fontSize: '14px'
+    },
+};
