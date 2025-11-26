@@ -106,7 +106,7 @@ const Accueil = () => {
                         />
 
                         <HoverCard 
-                            to="/stories" 
+                            to="/library" 
                             title="Bibliothèque" 
                             icon="📚" 
                             desc="Explorez les récits de la communauté."

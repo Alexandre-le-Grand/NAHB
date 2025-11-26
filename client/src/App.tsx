@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import Accueil from "./pages/Accueil";
 import UserList from "./pages/UserList";
 import PageStoryCreator from "./pages/PageStoryCreator";
+import Library from "./pages/Library";
 
 
 export default function App() {
@@ -16,6 +17,8 @@ return (
 <Route path="/acceuil" element={<Accueil />} />
 <Route path="/users" element={<UserList />} />
 <Route path="/story-creator" element={<PageStoryCreator />} />
+<Route path="/library" element={<Library />} />
+
 
 
 </Routes>
