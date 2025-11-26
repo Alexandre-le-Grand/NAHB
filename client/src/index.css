@@ -44,10 +44,9 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  
+  /* CHANGEMENT ICI : On remplace le flex centré par block */
+  display: block; 
   position: relative;
   overflow-x: hidden;
   text-rendering: optimizeLegibility;

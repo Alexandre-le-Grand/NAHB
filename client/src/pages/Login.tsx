@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 
 export default function Login() {
   const [email, setEmail] = useState(''); 
@@ -35,68 +34,171 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-800 via-purple-700 to-pink-600 p-4">
+    <div style={styles.container}>
+      {/* BACKGROUND DECORATION */}
+      <div style={styles.blob1}></div>
+      <div style={styles.blob2}></div>
       
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl"
-      >
-        <h1 className="text-3xl font-extrabold text-center text-purple-700 mb-8">Connexion</h1>
+      <div style={styles.card}>
+        <h1 style={styles.title}>Connexion</h1>
         
         {error && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-red-100 text-red-600 p-3 rounded-lg mb-6 text-center text-sm font-bold"
-          >
+          <div style={styles.errorBox}>
             {error}
-          </motion.div>
+          </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2 ml-1">Email</label>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label htmlFor="email" style={styles.label}>Email</label>
             <input 
               type="email" 
-              name="email" 
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-4 rounded-xl bg-gray-100 border border-transparent focus:bg-white focus:border-purple-500 focus:ring-0 transition duration-200 outline-none"
-              placeholder="votre@email.com"
+              style={styles.input}
+              placeholder="exemple@email.com"
             />
           </div>
           
-          <div>
-            <label className="block text-gray-700 font-bold mb-2 ml-1">Mot de passe</label>
+          <div style={styles.inputGroup}>
+            <label htmlFor="password" style={styles.label}>Mot de passe</label>
             <input 
               type="password" 
-              name="password" 
+              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-4 rounded-xl bg-gray-100 border border-transparent focus:bg-white focus:border-purple-500 focus:ring-0 transition duration-200 outline-none"
+              style={styles.input}
               placeholder="••••••••"
             />
           </div>
         
           <button 
             type="submit"
-            className="btn-glow w-full py-4 rounded-3xl text-lg font-bold shadow-lg bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-300 mt-4"
+            style={styles.button}
           >
             Se connecter
           </button>
         </form>
 
-        <p className="text-center mt-8 text-gray-600">
+        <p style={styles.footerText}>
           Pas encore de compte ?{' '}
-          <Link to="/register" className="text-purple-700 font-bold hover:underline">
+          <Link to="/register" style={styles.link}>
             Inscrivez-vous
           </Link>
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }
+
+const styles: any = {
+    container: {
+        minHeight: "100vh",
+        backgroundColor: "#0f172a",
+        color: "#e2e8f0",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px"
+    },
+    blob1: {
+        position: "absolute",
+        top: "-10%",
+        left: "-10%",
+        width: "500px",
+        height: "500px",
+        background: "radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%)",
+        filter: "blur(40px)",
+        zIndex: 0
+    },
+    blob2: {
+        position: "absolute",
+        bottom: "10%",
+        right: "-5%",
+        width: "400px",
+        height: "400px",
+        background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%)",
+        filter: "blur(40px)",
+        zIndex: 0
+    },
+    card: {
+        width: "100%",
+        maxWidth: "420px",
+        backgroundColor: "rgba(30, 41, 59, 0.7)",
+        borderRadius: "16px",
+        padding: "40px",
+        border: "1px solid rgba(255,255,255,0.05)",
+        backdropFilter: "blur(10px)",
+        zIndex: 1
+    },
+    title: {
+        fontSize: "28px",
+        fontWeight: "800",
+        color: "white",
+        textAlign: "center",
+        marginBottom: "30px"
+    },
+    errorBox: {
+        padding: '1rem', 
+        background: 'rgba(239, 68, 68, 0.2)', 
+        border: '1px solid rgba(239, 68, 68, 0.5)', 
+        borderRadius: '12px', 
+        color: '#fca5a5', 
+        marginBottom: '1.5rem',
+        textAlign: 'center',
+        fontSize: '14px'
+    },
+    form: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px'
+    },
+    inputGroup: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+    },
+    label: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "#94a3b8"
+    },
+    input: {
+        width: "100%",
+        padding: "12px 16px",
+        borderRadius: "8px",
+        backgroundColor: "#0f172a",
+        border: "1px solid #334155",
+        color: "#e2e8f0",
+        fontSize: "15px"
+    },
+    button: {
+        width: "100%",
+        padding: "12px",
+        borderRadius: "8px",
+        border: "none",
+        background: "linear-gradient(to right, #38bdf8, #818cf8)",
+        color: "white",
+        fontSize: "16px",
+        fontWeight: "700",
+        cursor: "pointer",
+        marginTop: "10px"
+    },
+    footerText: {
+        textAlign: "center",
+        marginTop: "25px",
+        color: "#94a3b8",
+        fontSize: "14px"
+    },
+    link: {
+        color: "#818cf8",
+        fontWeight: "600",
+        textDecoration: "none"
+    }
+};
