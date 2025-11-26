@@ -13,6 +13,7 @@ router.delete('/:id', verifyToken, storyController.deleteStory);
 
 // Création complète avec pages et choix
 router.post('/createStoryWithPages', verifyToken, storyController.createStoryWithPages);
+router.put('/:id/full', verifyToken, storyController.updateStoryWithPages);
 // Dev helper: allow posting story with pages without auth in development for quick testing
 if (process.env.NODE_ENV !== 'production') {
 	router.post('/createStoryWithPages-dev', storyController.createStoryWithPages);

@@ -19,6 +19,7 @@ return (
 <Route path="/acceuil" element={<Accueil />} />
 <Route path="/users" element={<UserList />} />
 <Route path="/story-creator" element={<PageStoryCreator />} />
+<Route path="/story-creator/:storyId" element={<PageStoryCreator />} />
 <Route path="/library" element={<Library />} />
 <Route path="/play/:storyId" element={<ReadStory />} />
 <Route path="/my-stories" element={<MyStory />} />

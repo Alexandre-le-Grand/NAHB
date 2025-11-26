@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 type ChoiceDraft = {
   id: string;
@@ -19,7 +19,9 @@ type PageDraft = {
 const genId = (prefix = "") => `${prefix}${Math.random().toString(36).slice(2, 9)}`;
 
 export default function PageStoryCreator(): JSX.Element {
+  const { storyId } = useParams<{ storyId?: string }>();
   const navigate = useNavigate();
+  const isEditing = !!storyId;
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [pages, setPages] = useState<PageDraft[]>([]);
@@ -41,6 +43,45 @@ export default function PageStoryCreator(): JSX.Element {
         setUser(JSON.parse(userData));
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (isEditing) {
+      const fetchStoryForEdit = async () => {
+        try {
+          setLoading(true);
+          const res = await fetch(`http://localhost:5000/stories/${storyId}/full`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          if (!res.ok) throw new Error("Impossible de charger l'histoire pour l'édition.");
+          
+          const storyData = await res.json();
+          
+          setTitle(storyData.title);
+          setDescription(storyData.description);
+
+          // Adapter les données des pages et choix pour l'éditeur
+          const pagesForEditor = storyData.pages.map((p: any) => ({
+            id: p.id.toString(), // Utiliser l'ID de la BDD comme ID temporaire
+            content: p.content,
+            isEnding: p.isEnding,
+            choices: (p.choices || []).map((c: any) => ({
+              id: c.id.toString(),
+              text: c.text,
+              nextPageIndex: null, // On utilisera nextPageTempId pour la cohérence
+              nextPageTempId: c.next_PageId ? c.next_PageId.toString() : null
+            }))
+          }));
+          setPages(pagesForEditor);
+
+        } catch (err) {
+          setError((err as Error).message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchStoryForEdit();
+    }
+  }, [isEditing, storyId]);
 
   const handleLogout = () => {
       localStorage.removeItem('token');
@@ -143,7 +184,7 @@ export default function PageStoryCreator(): JSX.Element {
     const payload = {
       title: title.trim(),
       description: description.trim(),
-      pages: pages.map((pg) => ({
+      pages: pages.map((pg, index) => ({
         // include the client-side generated id so server can use it to resolve references
         id: pg.id,
         content: pg.content,
@@ -151,7 +192,7 @@ export default function PageStoryCreator(): JSX.Element {
         choices: pg.isEnding ? [] : (pg.choices || []).slice(0, 2).map(c => ({
           text: c.text,
           // prefer a chosen tempId reference so later edits or reorders don't break
-          nextPageTempId: c.nextPageTempId ?? undefined,
+          nextPageTempId: c.nextPageTempId,
           nextPageIndex: typeof c.nextPageIndex === "number" ? c.nextPageIndex : null
         }))
       }))
@@ -163,8 +204,9 @@ export default function PageStoryCreator(): JSX.Element {
     }
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/stories/createStoryWithPages", {
-        method: "POST",
+      const url = isEditing ? `http://localhost:5000/stories/${storyId}/full` : "http://localhost:5000/stories/createStoryWithPages";
+      const res = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token
@@ -173,9 +215,9 @@ export default function PageStoryCreator(): JSX.Element {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || "Erreur serveur lors de la création.");
+        setError(data.message || `Erreur serveur lors de la ${isEditing ? 'mise à jour' : 'création'}.`);
       } else {
-        setMessage("Histoire créée avec succès ! Redirection...");
+        setMessage(`Histoire ${isEditing ? 'mise à jour' : 'créée'} avec succès ! Redirection...`);
         // Redirige l'utilisateur vers la page de ses histoires après un court délai
         setTimeout(() => navigate('/my-stories'), 1500);
       }
@@ -186,7 +228,7 @@ export default function PageStoryCreator(): JSX.Element {
       setLoading(false);
     }
   };
-
+  
   if (!user) return <div style={styles.container}></div>;
 
   return (
@@ -196,7 +238,7 @@ export default function PageStoryCreator(): JSX.Element {
 
       <nav style={styles.navbar}>
         <Link to="/acceuil" style={styles.logo}>
-            <span style={{ fontSize: "24px", marginRight: "10px" }}>✍️</span> 
+            <span style={{ fontSize: "24px", marginRight: "10px" }}>{isEditing ? '✏️' : '✍️'}</span> 
             Story Creator
         </Link>
         <div style={styles.navRight}>
@@ -213,7 +255,7 @@ export default function PageStoryCreator(): JSX.Element {
       </nav>
 
       <main style={styles.main}>
-        <h1 style={styles.pageTitle}>Créer une nouvelle histoire</h1>
+        <h1 style={styles.pageTitle}>{isEditing ? "Modifier l'histoire" : "Créer une nouvelle histoire"}</h1>
         
         <div style={styles.formGrid}>
           <div style={styles.inputGroup}>
@@ -365,7 +407,7 @@ export default function PageStoryCreator(): JSX.Element {
           {message && <div style={styles.successBox}>{message}</div>}
           <div style={{ display: "flex", gap: 12, justifyContent: 'flex-end' }}>
             <button onClick={() => { setPages([]); resetEditor(); setTitle(""); setDescription(""); setMessage(null); setError(null); }} style={{...styles.button, ...styles.buttonSecondary}}>Réinitialiser</button>
-            <button onClick={submitStory} disabled={loading} style={{...styles.button, ...styles.buttonPrimary}}>{loading ? "Création en cours..." : "Créer l'histoire"}</button>
+            <button onClick={submitStory} disabled={loading} style={{...styles.button, ...styles.buttonPrimary}}>{loading ? (isEditing ? "Mise à jour..." : "Création...") : (isEditing ? "Mettre à jour l'histoire" : "Créer l'histoire")}</button>
           </div>
         </div>
       </main>

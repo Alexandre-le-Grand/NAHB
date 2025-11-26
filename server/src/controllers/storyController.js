@@ -111,6 +111,71 @@ const updateStory = async (req, res) => {
     }
 };
 
+// UPDATE STORY WITH PAGES + CHOICES
+const updateStoryWithPages = async (req, res) => {
+    const { id } = req.params;
+    const t = await Story.sequelize.transaction();
+    try {
+        const { title, description, pages } = req.body;
+
+        const story = await Story.findByPk(id, { transaction: t });
+        if (!story) {
+            await t.rollback();
+            return res.status(404).json({ message: "Histoire introuvable" });
+        }
+
+        // Vérification des permissions
+        if (story.AuthorId !== req.user.id && req.user.role !== 'admin') {
+            await t.rollback();
+            return res.status(403).json({ message: "Accès refusé" });
+        }
+
+        // Mise à jour du titre et de la description
+        await story.update({ title, description }, { transaction: t });
+
+        // Suppression des anciennes pages et choix
+        const oldPages = await Page.findAll({ where: { storyId: story.id }, transaction: t });
+        if (oldPages.length > 0) {
+            const oldPageIds = oldPages.map(p => p.id);
+            await Choice.destroy({ where: { source_PageId: oldPageIds } }, { transaction: t });
+            await Page.destroy({ where: { storyId: story.id } }, { transaction: t });
+        }
+
+        // Recréation des pages et choix (logique similaire à createStoryWithPages)
+        const pageMap = [];
+        for (let i = 0; i < pages.length; i++) {
+            const p = await Page.create({
+                content: pages[i].content,
+                isEnding: pages[i].isEnding || false,
+                storyId: story.id
+            }, { transaction: t });
+            pageMap.push({ index: i, id: p.id, tempId: pages[i].id });
+        }
+
+        for (let i = 0; i < pages.length; i++) {
+            const pageData = pages[i];
+            if (!pageMap[i].isEnding && pageData.choices && pageData.choices.length > 0) {
+                for (let choice of pageData.choices) {
+                    const nextPage = pageMap.find(p => p.tempId === choice.nextPageTempId);
+                    await Choice.create({
+                        text: choice.text,
+                        source_PageId: pageMap[i].id,
+                        next_PageId: nextPage ? nextPage.id : null
+                    }, { transaction: t });
+                }
+            }
+        }
+
+        await story.update({ startPageId: pageMap.length > 0 ? pageMap[0].id : null }, { transaction: t });
+
+        await t.commit();
+        res.status(200).json({ message: "Histoire mise à jour avec succès", storyId: story.id });
+    } catch (err) {
+        await t.rollback();
+        res.status(500).json({ message: "Erreur serveur lors de la mise à jour", error: err.message });
+    }
+};
+
 // DELETE STORY
 const deleteStory = async (req, res) => {
     try {
@@ -455,6 +520,7 @@ module.exports = {
     getMyStories,
     getStoryById,
     updateStory,
+    updateStoryWithPages,
     deleteStory,
     createStoryWithPages,
     publishStory,
