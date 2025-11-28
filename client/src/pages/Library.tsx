@@ -61,10 +61,13 @@ export default function Library() {
         const storiesData: Story[] = await storiesRes.json();
         const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
 
-        const statusesMap: Record<number, 'en_cours' | 'fini'> = {};
-        if (Array.isArray(playthroughsData)) {
-          playthroughsData.forEach(p => statusesMap[p.StoryId] = p.status);
-        }
+        const statusesMap = (playthroughsData || []).reduce((acc: Record<number, 'en_cours' | 'fini'>, p) => {
+          // Comme le backend trie par date de mise à jour, on ne garde que le premier statut qu'on voit pour chaque histoire.
+          if (!acc[p.StoryId]) {
+            acc[p.StoryId] = p.status;
+          }
+          return acc;
+        }, {});
         setPlaythroughStatuses(statusesMap);
         setStories(storiesData);
       } catch (err) {
