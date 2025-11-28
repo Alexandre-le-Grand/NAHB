@@ -22,8 +22,7 @@ export default function Header() {
       <div className={styles.navLeft}>
         <button onClick={() => navigate(-1)} className={styles.backButton} title="Retour" aria-label="Retour">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5"></path>
-            <polyline points="12 19 5 12 12 5"></polyline>
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
         <Link to="/acceuil" className={styles.logo}>

@@ -5,7 +5,6 @@ import { useAuth } from "./AuthContext";
 type ChoiceDraft = {
   id: string;
   text: string;
-  // we support either a numeric index or a client-side temp page id
   nextPageIndex: number | null;
   nextPageTempId?: string | null;
 };
@@ -55,7 +54,6 @@ export default function PageStoryCreator(): JSX.Element {
           setTitle(storyData.title);
           setDescription(storyData.description);
 
-          // Adapter les données des pages et choix pour l'éditeur
           const pagesForEditor = storyData.pages.map((p: any) => ({
             id: p.id.toString(), // Utiliser l'ID de la BDD comme ID temporaire
             content: p.content,
@@ -63,7 +61,7 @@ export default function PageStoryCreator(): JSX.Element {
             choices: (p.choices || []).map((c: any) => ({
               id: c.id.toString(),
               text: c.text,
-              nextPageIndex: null, // On utilisera nextPageTempId pour la cohérence
+              nextPageIndex: null,
               nextPageTempId: c.next_PageId ? c.next_PageId.toString() : null
             }))
           }));
@@ -180,13 +178,11 @@ export default function PageStoryCreator(): JSX.Element {
       title: title.trim(),
       description: description.trim(),
       pages: pages.map((pg, index) => ({
-        // include the client-side generated id so server can use it to resolve references
         id: pg.id,
         content: pg.content,
         isEnding: pg.isEnding,
         choices: pg.isEnding ? [] : (pg.choices || []).slice(0, 2).map(c => ({
           text: c.text,
-          // prefer a chosen tempId reference so later edits or reorders don't break
           nextPageTempId: c.nextPageTempId,
           nextPageIndex: typeof c.nextPageIndex === "number" ? c.nextPageIndex : null
         }))
@@ -213,7 +209,6 @@ export default function PageStoryCreator(): JSX.Element {
         setError(data.message || `Erreur serveur lors de la ${isEditing ? 'mise à jour' : 'création'}.`);
       } else {
         setMessage(`Histoire ${isEditing ? 'mise à jour' : 'créée'} avec succès ! Redirection...`);
-        // Redirige l'utilisateur vers la page de ses histoires après un court délai
         setTimeout(() => navigate('/my-stories'), 1500);
       }
     } catch (err) {

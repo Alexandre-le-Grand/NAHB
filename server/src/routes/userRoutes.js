@@ -22,7 +22,7 @@ router.get('/me/playthroughs', verifyToken, async (req, res) => {
                 attributes: ['id', 'title', 'description'],
                 required: false
             }],
-            order: [['updatedAt', 'DESC']] // On trie par date de mise à jour, du plus récent au plus ancien
+            order: [['updatedAt', 'DESC']]
         });
         res.json(playthroughs);
     } catch (err) {

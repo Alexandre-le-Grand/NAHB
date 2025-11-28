@@ -22,11 +22,9 @@ export default function Home() {
 
   return (
     <div style={styles.container}>
-      {/* BACKGROUND DECORATION */}
       <div style={styles.blob1}></div>
       <div style={styles.blob2}></div>
 
-      {/* Logo */}
       <motion.div
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -38,7 +36,6 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* Titre */}
       <motion.h1
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -48,7 +45,6 @@ export default function Home() {
         Bienvenue sur NAHB
       </motion.h1>
 
-      {/* Boutons */}
       <div style={styles.buttonContainer}>
         <Link to="/login">
           <button

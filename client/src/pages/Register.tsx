@@ -43,14 +43,12 @@ export default function Register() {
 
   return (
     <div style={styles.container}>
-      {/* BACKGROUND DECORATION */}
       <div style={styles.blob1}></div>
       <div style={styles.blob2}></div>
 
       <div style={styles.card}>
         <h1 style={styles.title}>Inscription</h1>
 
-        {/* Messages d'alerte */}
         {error && (
           <div style={styles.errorBox}>
             {error}

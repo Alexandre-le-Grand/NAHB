@@ -38,23 +38,24 @@
 }
 
 .backButton {
-    background: transparent;
+    background: #1e293b;
     border: 1px solid #334155;
     color: #94a3b8;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 10px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease-in-out;
+    flex-shrink: 0;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
 }
 
 .backButton:hover {
     background-color: #334155;
     color: #fff;
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .navLink {

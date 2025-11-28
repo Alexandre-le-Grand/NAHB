@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import { AuthProvider } from "./pages/AuthContext";
-import Header from "./components/Header"; // Le chemin est correct, on s'assure que le fichier existe bien
+import Header from "./components/Header";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Accueil from "./pages/Accueil";
@@ -15,8 +15,7 @@ import Profile from "./pages/Profile";
 export default function App() {
 return (
 <AuthProvider>
-    {/* Le Header est maintenant global */}
-    <Header /> 
+    <Header />
     <main>
         <Routes>
             <Route path="/" element={<Home />} />

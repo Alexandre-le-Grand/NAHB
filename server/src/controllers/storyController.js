@@ -1,13 +1,14 @@
-const db = require('../models/index');
+const { Story, Page, Choice, User, Playthrough } = require('../models/index');
 const { Op } = require('sequelize');
 
 
+// CREATE STORY SIMPLE
 const createStory = async (req, res) => {
     try {
         const { title, description } = req.body;
         if (!title) return res.status(400).json({ message: "Titre obligatoire" });
 
-        const story = await db.Story.create({
+        const story = await Story.create({
             title,
             description,
             AuthorId: req.user.id
@@ -19,16 +20,19 @@ const createStory = async (req, res) => {
     }
 };
 
+// GET ALL STORIES (filtrage selon rôle)
 const getAllStories = async (req, res) => {
     try {
         let stories;
 
-        if (req.user && req.user.role === 'admin') {
-            stories = await db.Story.findAll({
-                attributes: { include: ['AuthorId'] }
+        if (req.user && req.user.role === 'admin') { // Les admins voient tout
+            stories = await Story.findAll({
+                attributes: { include: ['AuthorId'] } // Assurer que AuthorId est inclus
             });
         } else {
-            stories = await db.Story.findAll({
+            // Les utilisateurs non-admin voient les histoires publiées ET leurs propres brouillons.
+            // Ils ne voient JAMAIS les histoires suspendues.
+            stories = await Story.findAll({
                 where: {
                     statut: { [Op.ne]: 'suspendu' },
                     [Op.or]: [
@@ -36,7 +40,7 @@ const getAllStories = async (req, res) => {
                         { AuthorId: req.user ? req.user.id : null }
                     ]
                 },
-                attributes: { include: ['AuthorId'] }
+                attributes: { include: ['AuthorId'] } // Assurer que AuthorId est inclus
             });
         }
 
@@ -46,10 +50,11 @@ const getAllStories = async (req, res) => {
     }
 };
 
+// GET CURRENT USER'S STORIES
 const getMyStories = async (req, res) => {
     try {
         const authorId = req.user.id;
-        const stories = await db.Story.findAll({
+        const stories = await Story.findAll({
             where: { AuthorId: authorId },
         });
         res.json(stories);
@@ -58,16 +63,18 @@ const getMyStories = async (req, res) => {
     }
 };
 
+// GET STORY BY ID
 const getStoryById = async (req, res) => {
     try {
-            const story = await db.Story.findByPk(req.params.id, {
+        // On inclut l'AuthorId pour vérifier les permissions côté client
+            const story = await Story.findByPk(req.params.id, {
                 include: [
                     {
-                        model: db.Page,
+                        model: Page,
                         as: 'pages',
                         include: [
                             {
-                                model: db.Choice,
+                                model: Choice,
                                 as: 'choicesFrom',
                             }
                         ]
@@ -78,10 +85,12 @@ const getStoryById = async (req, res) => {
 
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
+        // Convert Sequelize instance to plain object and ensure pages have `choices` array
         const plain = story.toJSON ? story.toJSON() : story;
         if (plain.pages && Array.isArray(plain.pages)) {
             plain.pages = plain.pages.map(p => ({
                 ...p,
+                // prefer existing `choices` but fallback to `choicesFrom` alias used in associations
                 choices: p.choices || p.choicesFrom || []
             }));
         }
@@ -91,10 +100,10 @@ const getStoryById = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
-
+// UPDATE STORY
 const updateStory = async (req, res) => {
     try {
-        const story = await db.Story.findByPk(req.params.id);
+        const story = await Story.findByPk(req.params.id);
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
         if (story.AuthorId !== req.user.id && req.user.role !== 'admin')
@@ -107,35 +116,39 @@ const updateStory = async (req, res) => {
     }
 };
 
+// UPDATE STORY WITH PAGES + CHOICES
 const updateStoryWithPages = async (req, res) => {
     const { id } = req.params;
-    const t = await db.sequelize.transaction();
+    const t = await Story.sequelize.transaction();
     try {
         const { title, description, pages } = req.body;
 
-        const story = await db.Story.findByPk(id, { transaction: t });
+        const story = await Story.findByPk(id, { transaction: t });
         if (!story) {
             await t.rollback();
             return res.status(404).json({ message: "Histoire introuvable" });
         }
 
+        // Vérification des permissions
         if (story.AuthorId !== req.user.id && req.user.role !== 'admin') {
             await t.rollback();
             return res.status(403).json({ message: "Accès refusé" });
         }
 
+        // Mise à jour du titre et de la description
         await story.update({ title, description }, { transaction: t });
 
-        const oldPages = await db.Page.findAll({ where: { storyId: story.id }, transaction: t });
+        // Suppression des anciennes pages et choix
+        const oldPages = await Page.findAll({ where: { storyId: story.id }, transaction: t });
         if (oldPages.length > 0) {
             const oldPageIds = oldPages.map(p => p.id);
-            await db.Choice.destroy({ where: { source_PageId: oldPageIds } }, { transaction: t });
-            await db.Page.destroy({ where: { storyId: story.id } }, { transaction: t });
+            await Choice.destroy({ where: { source_PageId: oldPageIds } }, { transaction: t });
+            await Page.destroy({ where: { storyId: story.id } }, { transaction: t });
         }
 
         const pageMap = [];
         for (let i = 0; i < pages.length; i++) {
-            const p = await db.Page.create({
+            const p = await Page.create({
                 content: pages[i].content,
                 isEnding: pages[i].isEnding || false,
                 storyId: story.id
@@ -148,7 +161,7 @@ const updateStoryWithPages = async (req, res) => {
             if (!pageMap[i].isEnding && pageData.choices && pageData.choices.length > 0) {
                 for (let choice of pageData.choices) {
                     const nextPage = pageMap.find(p => p.tempId === choice.nextPageTempId);
-                    await db.Choice.create({
+                    await Choice.create({
                         text: choice.text,
                         source_PageId: pageMap[i].id,
                         next_PageId: nextPage ? nextPage.id : null
@@ -167,9 +180,10 @@ const updateStoryWithPages = async (req, res) => {
     }
 };
 
+// DELETE STORY
 const deleteStory = async (req, res) => {
     try {
-        const story = await db.Story.findByPk(req.params.id);
+        const story = await Story.findByPk(req.params.id);
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
         if (story.AuthorId !== req.user.id && req.user.role !== 'admin')
@@ -182,8 +196,9 @@ const deleteStory = async (req, res) => {
     }
 };
 
+// CREATE STORY WITH PAGES + CHOICES
 const createStoryWithPages = async (req, res) => {
-    const t = await db.sequelize.transaction();
+    const t = await Story.sequelize.transaction();
     try {
         const { title, description, pages } = req.body;
 
@@ -193,19 +208,20 @@ const createStoryWithPages = async (req, res) => {
         let authorId = null;
         if (req.user && req.user.id) authorId = req.user.id;
         else {
-            const fallback = await db.User.findOne({ transaction: t });
+            const fallback = await User.findOne({ transaction: t });
             authorId = fallback ? fallback.id : null;
         }
 
-        const story = await db.Story.create({
+        const story = await Story.create({
             title,
             description,
             AuthorId: authorId
         }, { transaction: t });
 
+        // pageMap keeps mapping between client-provided temp ids / indexes and created DB ids
         const pageMap = [];
         for (let i = 0; i < pages.length; i++) {
-            const p = await db.Page.create({
+            const p = await Page.create({
                 content: pages[i].content,
                 isEnding: pages[i].isEnding || false,
                 storyId: story.id
@@ -230,7 +246,7 @@ const createStoryWithPages = async (req, res) => {
                         nextPage = pageMap.find(p => p.id === choice.nextPageId);
                     }
 
-                    await db.Choice.create({
+                    await Choice.create({
                         text: choice.text,
                         source_PageId: pageMap[i].id,
                         next_PageId: nextPage ? nextPage.id : null
@@ -243,8 +259,8 @@ const createStoryWithPages = async (req, res) => {
 
         await t.commit();
 
-        const created = await db.Story.findByPk(story.id, {
-            include: [{ model: db.Page, as: 'pages', include: [{ model: db.Choice, as: 'choicesFrom' }] }]
+        const created = await Story.findByPk(story.id, {
+            include: [{ model: Page, as: 'pages', include: [{ model: Choice, as: 'choicesFrom' }] }]
         });
         const payload = created.toJSON();
         payload.pages = payload.pages.map(p => ({ ...p, choices: p.choices || p.choicesFrom || [] }));
@@ -257,9 +273,10 @@ const createStoryWithPages = async (req, res) => {
     }
 };
 
+// PUBLISH STORY (admin only)
 const publishStory = async (req, res) => {
     try {
-        const story = await db.Story.findByPk(req.params.id);
+        const story = await Story.findByPk(req.params.id);
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
         await story.update({ statut: "publié" });
@@ -269,6 +286,7 @@ const publishStory = async (req, res) => {
     }
 };
 
+// START A PLAYTHROUGH (mark as 'in_progress')
 const startPlaythrough = async (req, res) => {
     try {
         const storyIdString = req.body.storyId;
@@ -282,12 +300,16 @@ const startPlaythrough = async (req, res) => {
         }
 
         const storyId = parseInt(storyIdString, 10);
-        const [playthrough, created] = await db.Playthrough.findOrCreate({
+        // Find or create a playthrough. If it exists and is 'finished', we don't change it.
+        // If it exists and is 'in_progress', we return it.
+        // If it doesn't exist, we create it as 'in_progress'.
+        const [playthrough, created] = await Playthrough.findOrCreate({
             where: { UserId: userId, StoryId: storyId },
-            defaults: { EndingPageId: null, status: 'in_progress' }
+            defaults: { EndingPageId: null, status: 'in_progress' } // On utilise 'in_progress'
         });
 
-        if (!created && playthrough.status === 'finished') {
+        // If it was already finished, we don't want to revert its status
+        if (!created && playthrough.status === 'fini') {
             return res.status(200).json({ message: "Partie déjà terminée.", playthrough });
         }
 
@@ -297,6 +319,7 @@ const startPlaythrough = async (req, res) => {
     }
 };
 
+// RECORD A COMPLETED PLAYTHROUGH (update status to 'finished')
 const recordPlaythrough = async (req, res) => {
     try {
         const { storyId: storyIdString, endingPageId } = req.body;
@@ -305,18 +328,21 @@ const recordPlaythrough = async (req, res) => {
         }
         const userId = req.user.id;
 
-        if (!storyIdString || endingPageId === undefined || endingPageId === null) {
+        if (!storyIdString || endingPageId === undefined || endingPageId === null) { // endingPageId peut être 0, donc vérifier undefined/null
             return res.status(400).json({ message: "L'identifiant de l'histoire et de la page de fin sont requis." });
         }
 
         const storyId = parseInt(storyIdString, 10);
-        let playthrough = await db.Playthrough.findOne({ where: { UserId: userId, StoryId: storyId } });
+        // Try to find an existing playthrough (either in_progress or finished)
+        let playthrough = await Playthrough.findOne({ where: { UserId: userId, StoryId: storyId } });
 
         if (playthrough) {
+            // Update existing playthrough to 'finished'
             await playthrough.update({ EndingPageId: endingPageId, status: 'finished' });
             res.status(200).json({ message: "Partie mise à jour à 'finie'.", playthrough });
         } else {
-            playthrough = await db.Playthrough.create({
+            // If no playthrough exists (e.g., user jumped directly to an ending), create a new one as 'finished'
+            playthrough = await Playthrough.create({
                 UserId: userId,
                 StoryId: storyId,
                 EndingPageId: endingPageId,
@@ -330,27 +356,30 @@ const recordPlaythrough = async (req, res) => {
     }
 };
 
+// Récupère une story complète (pages, choix et auteur) — utilisée par la route /:id/full
 const getFullStory = async (req, res) => {
     try {
-        const story = await db.Story.findByPk(req.params.id, {
+        const story = await Story.findByPk(req.params.id, {
             include: [
                 {
-                    model: db.Page,
+                    model: Page,
                     as: 'pages',
                     include: [
-                        { model: db.Choice, as: 'choicesFrom' },
+                        { model: Choice, as: 'choicesFrom' },
                     ]
                 },
-                { model: db.User, as: 'author' }
+                { model: require('../models').User, as: 'author' }
             ]
         });
 
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
+        // Convertir l'instance Sequelize en objet simple et s'assurer que les pages ont un tableau `choices`
         const plain = story.toJSON ? story.toJSON() : story;
         if (plain.pages && Array.isArray(plain.pages)) {
             plain.pages = plain.pages.map(p => ({
                 ...p,
+                // préférer `choices` existant mais se rabattre sur l'alias `choicesFrom` utilisé dans les associations
                 choices: p.choices || p.choicesFrom || []
             }));
         }
@@ -361,13 +390,14 @@ const getFullStory = async (req, res) => {
     }
 };
 
+// SUSPEND/UNSUSPEND STORY (admin only)
 const suspendStory = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: "Accès refusé. Seuls les admins peuvent suspendre une histoire." });
         }
 
-        const story = await db.Story.findByPk(req.params.id);
+        const story = await Story.findByPk(req.params.id);
         if (!story) {
             return res.status(404).json({ message: "Histoire introuvable." });
         }
@@ -385,6 +415,8 @@ const suspendStory = async (req, res) => {
     }
 };
 
+// Dev helper: create a sample story with pages and choices for UI testing.
+
 module.exports = {
     createStory,
     getAllStories,
@@ -398,6 +430,6 @@ module.exports = {
     recordPlaythrough,
     getFullStory,
     suspendStory,
-    startPlaythrough,
+    startPlaythrough, // Export the new function
 
 };

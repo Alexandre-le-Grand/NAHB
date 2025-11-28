@@ -40,7 +40,7 @@ export default function UserList() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBan = async (id: number) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) return;
 
     await fetch(`http://localhost:5000/users/${id}`, {
@@ -77,11 +77,6 @@ export default function UserList() {
 
   return (
     <div style={styles.container}>
-      {/* BACKGROUND DECORATION */}
-      <div style={styles.blob1}></div>
-      <div style={styles.blob2}></div>
-
-      {/* MAIN CONTENT */}
       <main style={styles.main}>
         <h1 style={styles.pageTitle}>Administration des Utilisateurs</h1>
 
@@ -123,10 +118,10 @@ export default function UserList() {
                         {user.role === 'user' ? 'Promouvoir' : 'Rétrograder'}
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleBan(user.id)}
                         style={{ ...styles.btn, ...styles.btnDelete }}
                       >
-                        Supprimer
+                        Bannir
                       </button>
                     </div>
                   </td>
@@ -143,31 +138,9 @@ export default function UserList() {
 const styles: any = {
   container: {
       minHeight: "100vh",
-      backgroundColor: "#0f172a",
+      backgroundColor: "#0f172a", // Assurez-vous que cela correspond à votre thème
       color: "#e2e8f0",
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      position: "relative",
-      overflow: "hidden"
-  },
-  blob1: {
-      position: "absolute",
-      top: "-10%",
-      left: "-10%",
-      width: "500px",
-      height: "500px",
-      background: "radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%)",
-      filter: "blur(40px)",
-      zIndex: 0
-  },
-  blob2: {
-      position: "absolute",
-      bottom: "10%",
-      right: "-5%",
-      width: "400px",
-      height: "400px",
-      background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%)",
-      filter: "blur(40px)",
-      zIndex: 0
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
   },
   navbar: {
       display: "flex",

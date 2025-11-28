@@ -21,6 +21,7 @@ export default function Library() {
   const { user, isAuthenticated, logout } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [playthroughStatuses, setPlaythroughStatuses] = useState<Record<number, 'in_progress' | 'finished'>>({});
 
   useEffect(() => {
@@ -158,16 +159,28 @@ export default function Library() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.blob1}></div>
-      <div className={styles.blob2}></div>
-
       <main className={styles.main}>
-        <h1 className={styles.pageTitle}>Bibliothèque d'histoires</h1>
+        <div className={styles.header}>
+          <h1 className={styles.pageTitle}>Bibliothèque d'histoires</h1>
+          <div className={styles.searchContainer}>
+            <input
+              type="text"
+              placeholder="Rechercher une histoire par titre..."
+              className={styles.searchInput}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
         
-        {stories.length === 0 && <div className={styles.emptyState}>Aucune histoire disponible pour le moment.</div>}
+        {stories.filter(story => story.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+          <div className={styles.emptyState}>
+            {stories.length === 0 ? "Aucune histoire disponible pour le moment." : "Aucune histoire ne correspond à votre recherche."}
+          </div>
+        )}
         
         <div className={styles.storiesGrid}>
-          {stories.map(story => (
+          {stories.filter(story => story.title.toLowerCase().includes(searchTerm.toLowerCase())).map(story => (
             <div key={story.id} className={styles.storyCard}>
               <h3 className={styles.storyTitle}>{story.title}</h3>
               <p className={styles.storyDescription}>{story.description}</p>
