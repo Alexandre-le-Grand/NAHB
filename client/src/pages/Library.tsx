@@ -13,7 +13,7 @@ interface Story {
 
 interface PlaythroughData {
   StoryId: number;
-  status: 'in_progress' | 'finished';
+  status: 'en_cours' | 'fini';
 }
 
 export default function Library() {
@@ -22,7 +22,7 @@ export default function Library() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [playthroughStatuses, setPlaythroughStatuses] = useState<Record<number, 'in_progress' | 'finished'>>({});
+  const [playthroughStatuses, setPlaythroughStatuses] = useState<Record<number, 'en_cours' | 'fini'>>({});
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -61,7 +61,7 @@ export default function Library() {
         const storiesData: Story[] = await storiesRes.json();
         const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
 
-        const statusesMap: Record<number, 'in_progress' | 'finished'> = {};
+        const statusesMap: Record<number, 'en_cours' | 'fini'> = {};
         if (Array.isArray(playthroughsData)) {
           playthroughsData.forEach(p => statusesMap[p.StoryId] = p.status);
         }
@@ -187,8 +187,8 @@ export default function Library() {
               <div className={styles.storyMeta}>
                 <div className={styles.badgesContainer}>
                   {playthroughStatuses[story.id] && (
-                    <span className={`${styles.badge} ${playthroughStatuses[story.id] === 'finished' ? styles.badgeFinished : styles.badgeInProgress}`}>
-                      {playthroughStatuses[story.id] === 'finished' ? 'TERMINÉ' : 'EN COURS'}
+                    <span className={`${styles.badge} ${playthroughStatuses[story.id] === 'fini' ? styles.badgeFinished : styles.badgeInProgress}`}>
+                      {playthroughStatuses[story.id] === 'fini' ? 'TERMINÉ' : 'EN COURS'}
                     </span>
                   )}
                 </div>

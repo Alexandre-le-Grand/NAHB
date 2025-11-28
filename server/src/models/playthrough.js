@@ -12,12 +12,12 @@ const Playthrough = sequelize.define('Playthrough', {
   },
   EndingPageId: {
     type: DataTypes.INTEGER,
-    allowNull: true // Peut être null si la partie est "en_cours"
+    allowNull: true 
   },
   status: {
-    type: DataTypes.ENUM('non_lu', 'en_cours', 'fini'),
+    type: DataTypes.ENUM('en_cours', 'fini'),
     allowNull: false,
-    defaultValue: 'non_lu'
+    defaultValue: 'en_cours'
   },
 });
 

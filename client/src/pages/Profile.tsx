@@ -9,7 +9,7 @@ interface PlaythroughEntry {
     title: string;
     description: string;
   },
-  status: 'in_progress' | 'finished';
+  status: 'en_cours' | 'fini';
 }
 
 export default function Profile() {
@@ -35,7 +35,7 @@ export default function Profile() {
         if (storiesRes.ok) {
           const uniquePlaythroughs = Object.values(
             (storiesData as PlaythroughEntry[]).reduce((acc: Record<number, PlaythroughEntry>, p) => {
-              if (!acc[p.Story.id] || (acc[p.Story.id].status === 'in_progress' && p.status === 'finished')) {
+              if (!acc[p.Story.id]) {
                 acc[p.Story.id] = p;
               }
               return acc;
