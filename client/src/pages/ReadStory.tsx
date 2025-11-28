@@ -28,7 +28,7 @@ interface Story {
 export default function ReadStory() {
   const params = useParams<{ storyId?: string; id?: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const id = params.storyId || params.id;
   const [story, setStory] = useState<Story | null>(null);
   const [currentPage, setCurrentPage] = useState<Page | null>(null);
@@ -72,7 +72,7 @@ export default function ReadStory() {
   }, [id]);
 
   useEffect(() => {
-    if (id) {
+    if (id && isAuthenticated) {
       const startPlaythrough = async () => {
         try {
           const token = localStorage.getItem('token');
@@ -88,7 +88,7 @@ export default function ReadStory() {
       };
       startPlaythrough();
     }
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   useEffect(() => {
     if (currentPage && currentPage.isEnding && story) {

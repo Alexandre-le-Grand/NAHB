@@ -78,8 +78,8 @@ export default function Profile() {
                 <div className={styles.storyCard}>
                   <h3 className={styles.storyTitle}>{playthrough.Story.title}</h3>
                   <p className={styles.storyDescription}>{playthrough.Story.description}</p>
-                  <span className={`${styles.statusBadge} ${playthrough.status === 'finished' ? styles.finished : styles.inProgress}`}>
-                    {playthrough.status === 'finished' ? 'Fini' : 'En cours'}
+                  <span className={`${styles.statusBadge} ${playthrough.status === 'fini' ? styles.finished : styles.inProgress}`}>
+                    {playthrough.status === 'fini' ? 'Fini' : 'En cours'}
                   </span>
                 </div>
               </Link>
