@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import styles from '../css/Login.module.css';
 
 export default function Login() {
   const [email, setEmail] = useState(''); 
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +26,7 @@ export default function Login() {
       if (!res.ok) {
         setError(data.message || 'Une erreur est survenue');
       } else {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user)); // Ajout de cette ligne cruciale
+        login(data.user, data.token);
         navigate('/acceuil'); 
       }
     } catch (err) {
@@ -34,58 +36,57 @@ export default function Login() {
   };
 
   return (
-    <div style={styles.container}>
-      {/* BACKGROUND DECORATION */}
-      <div style={styles.blob1}></div>
-      <div style={styles.blob2}></div>
+    <div className={styles.container}>
+      <div className={styles.blob1}></div>
+      <div className={styles.blob2}></div>
       
-      <div style={styles.card}>
-        <h1 style={styles.title}>Connexion</h1>
+      <div className={styles.card}>
+        <h1 className={styles.title}>Connexion</h1>
         
         {error && (
-          <div style={styles.errorBox}>
+          <div className={styles.errorBox}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label htmlFor="email" style={styles.label}>Email</label>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.inputGroup}>
+            <label htmlFor="email" className={styles.label}>Email</label>
             <input 
               type="email" 
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={styles.input}
+              className={styles.input}
               placeholder="exemple@email.com"
             />
           </div>
           
-          <div style={styles.inputGroup}>
-            <label htmlFor="password" style={styles.label}>Mot de passe</label>
+          <div className={styles.inputGroup}>
+            <label htmlFor="password" className={styles.label}>Mot de passe</label>
             <input 
               type="password" 
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={styles.input}
+              className={styles.input}
               placeholder="••••••••"
             />
           </div>
         
           <button 
             type="submit"
-            style={styles.button}
+            className={styles.button}
           >
             Se connecter
           </button>
         </form>
 
-        <p style={styles.footerText}>
+        <p className={styles.footerText}>
           Pas encore de compte ?{' '}
-          <Link to="/register" style={styles.link}>
+          <Link to="/register" className={styles.link}>
             Inscrivez-vous
           </Link>
         </p>
@@ -93,112 +94,3 @@ export default function Login() {
     </div>
   );
 }
-
-const styles: any = {
-    container: {
-        minHeight: "100vh",
-        backgroundColor: "#0f172a",
-        color: "#e2e8f0",
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        position: "relative",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "20px"
-    },
-    blob1: {
-        position: "absolute",
-        top: "-10%",
-        left: "-10%",
-        width: "500px",
-        height: "500px",
-        background: "radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%)",
-        filter: "blur(40px)",
-        zIndex: 0
-    },
-    blob2: {
-        position: "absolute",
-        bottom: "10%",
-        right: "-5%",
-        width: "400px",
-        height: "400px",
-        background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%)",
-        filter: "blur(40px)",
-        zIndex: 0
-    },
-    card: {
-        width: "100%",
-        maxWidth: "420px",
-        backgroundColor: "rgba(30, 41, 59, 0.7)",
-        borderRadius: "16px",
-        padding: "40px",
-        border: "1px solid rgba(255,255,255,0.05)",
-        backdropFilter: "blur(10px)",
-        zIndex: 1
-    },
-    title: {
-        fontSize: "28px",
-        fontWeight: "800",
-        color: "white",
-        textAlign: "center",
-        marginBottom: "30px"
-    },
-    errorBox: {
-        padding: '1rem', 
-        background: 'rgba(239, 68, 68, 0.2)', 
-        border: '1px solid rgba(239, 68, 68, 0.5)', 
-        borderRadius: '12px', 
-        color: '#fca5a5', 
-        marginBottom: '1.5rem',
-        textAlign: 'center',
-        fontSize: '14px'
-    },
-    form: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px'
-    },
-    inputGroup: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
-    },
-    label: {
-        fontSize: "13px",
-        fontWeight: "600",
-        color: "#94a3b8"
-    },
-    input: {
-        width: "100%",
-        padding: "12px 16px",
-        borderRadius: "8px",
-        backgroundColor: "#0f172a",
-        border: "1px solid #334155",
-        color: "#e2e8f0",
-        fontSize: "15px"
-    },
-    button: {
-        width: "100%",
-        padding: "12px",
-        borderRadius: "8px",
-        border: "none",
-        background: "linear-gradient(to right, #38bdf8, #818cf8)",
-        color: "white",
-        fontSize: "16px",
-        fontWeight: "700",
-        cursor: "pointer",
-        marginTop: "10px"
-    },
-    footerText: {
-        textAlign: "center",
-        marginTop: "25px",
-        color: "#94a3b8",
-        fontSize: "14px"
-    },
-    link: {
-        color: "#818cf8",
-        fontWeight: "600",
-        textDecoration: "none"
-    }
-};

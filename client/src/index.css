@@ -45,7 +45,6 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   
-  /* CHANGEMENT ICI : On remplace le flex centré par block */
   display: block; 
   position: relative;
   overflow-x: hidden;
@@ -54,7 +53,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animated gradient background */
 body::before {
   content: '';
   position: fixed;
@@ -88,7 +86,6 @@ body::before {
   66% { transform: translate(-5%, 5%) rotate(240deg); }
 }
 
-/* Floating particles effect */
 body::after {
   content: '';
   position: fixed;
@@ -112,7 +109,6 @@ body::after {
   50% { background-position: 100% 100%; opacity: 0.6; }
 }
 
-/* Links with enhanced hover effects */
 a {
   position: relative;
   color: var(--accent);
@@ -161,7 +157,6 @@ a:hover::after {
   transform-origin: left;
 }
 
-/* Premium button design */
 button {
   position: relative;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 50%, var(--accent-tertiary) 100%);
@@ -221,7 +216,6 @@ button:active::after {
   transition: width 0s, height 0s;
 }
 
-/* Glass morphism card */
 .card {
   position: relative;
   background: var(--bg-card);
@@ -266,7 +260,6 @@ button:active::after {
   left: 100%;
 }
 
-/* Utility classes */
 .rounded-3xl {
   border-radius: 1.5rem;
 }
@@ -299,7 +292,6 @@ button:active::after {
   transform: scale(1.05);
 }
 
-/* Glowing text effect */
 .text-glow {
   text-shadow: 
     0 0 10px var(--glow),
@@ -323,7 +315,6 @@ button:active::after {
   }
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -341,7 +332,6 @@ button:active::after {
   background: linear-gradient(180deg, var(--accent-secondary), var(--accent-tertiary));
 }
 
-/* Selection styling */
 ::selection {
   background: var(--accent);
   color: white;
@@ -351,8 +341,6 @@ button:active::after {
   background: var(--accent);
   color: white;
 }
-
-/* --- AJOUTS POUR LE FORMULAIRE --- */
 
 .input-group {
   display: flex;
@@ -370,7 +358,7 @@ label {
 input {
   width: 100%;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.5); /* Fond sombre transparent */
+  background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 12px;
   color: var(--text-primary);
@@ -380,13 +368,11 @@ input {
   outline: none;
 }
 
-/* Effet au survol de l'input */
 input:hover {
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.7);
 }
 
-/* Effet quand on écrit dedans */
 input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--glow);
@@ -394,7 +380,6 @@ input:focus {
   transform: translateY(-2px);
 }
 
-/* Placeholder couleur */
 input::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }

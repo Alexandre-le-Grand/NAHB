@@ -1,5 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
+import { AuthProvider } from "./pages/AuthContext";
+import Header from "./components/Header"; // Le chemin est correct, on s'assure que le fichier existe bien
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Accueil from "./pages/Accueil";
@@ -12,19 +14,24 @@ import Profile from "./pages/Profile";
 
 export default function App() {
 return (
-<Routes>
-<Route path="/" element={<Home />} />
-<Route path="/login" element={<Login />} />
-<Route path="/register" element={<Register />} />
-<Route path="/acceuil" element={<Accueil />} />
-<Route path="/users" element={<UserList />} />
-<Route path="/story-creator" element={<PageStoryCreator />} />
-<Route path="/story-creator/:storyId" element={<PageStoryCreator />} />
-<Route path="/library" element={<Library />} />
-<Route path="/play/:storyId" element={<ReadStory />} />
-<Route path="/my-stories" element={<MyStory />} />
-<Route path="/profile" element={<Profile />} />
-
-</Routes>
+<AuthProvider>
+    {/* Le Header est maintenant global */}
+    <Header /> 
+    <main>
+        <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/acceuil" element={<Accueil />} />
+            <Route path="/users" element={<UserList />} />
+            <Route path="/story-creator" element={<PageStoryCreator />} />
+            <Route path="/story-creator/:storyId" element={<PageStoryCreator />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/play/:storyId" element={<ReadStory />} />
+            <Route path="/my-stories" element={<MyStory />} />
+            <Route path="/profile" element={<Profile />} />
+        </Routes>
+    </main>
+</AuthProvider>
 );
 }

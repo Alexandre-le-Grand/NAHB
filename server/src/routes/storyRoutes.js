@@ -3,7 +3,6 @@ const router = express.Router();
 const storyController = require('../controllers/storyController');
 const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
 
-// CRUD de base
 router.post('/', verifyToken, storyController.createStory);
 router.get('/', verifyToken, storyController.getAllStories);
 router.get('/mine', verifyToken, storyController.getMyStories);
@@ -11,15 +10,12 @@ router.get('/:id', storyController.getStoryById);
 router.put('/:id', verifyToken, storyController.updateStory);
 router.delete('/:id', verifyToken, storyController.deleteStory);
 
-// Création complète avec pages et choix
 router.post('/createStoryWithPages', verifyToken, storyController.createStoryWithPages);
 router.put('/:id/full', verifyToken, storyController.updateStoryWithPages);
-// Dev helper: allow posting story with pages without auth in development for quick testing
 if (process.env.NODE_ENV !== 'production') {
 	router.post('/createStoryWithPages-dev', storyController.createStoryWithPages);
 }
 
-// Dev-only helper to seed a sample story for testing the reader UI
 if (process.env.NODE_ENV !== 'production') {
 	if (typeof storyController.seedTestStory === 'function') {
 		router.get('/seed', storyController.seedTestStory);
@@ -30,13 +26,10 @@ if (process.env.NODE_ENV !== 'production') {
 	}
 }
 
-// Publication (admin only)
 router.put('/:id/publish', verifyToken, verifyAdmin, storyController.publishStory);
 
-// Route pour enregistrer une partie terminée
 router.post('/playthroughs', verifyToken, storyController.recordPlaythrough);
 
-// Route pour marquer une histoire comme "en cours"
 router.post('/playthroughs/start', verifyToken, storyController.startPlaythrough);
 
 router.get('/:id/full', verifyToken, storyController.getFullStory);

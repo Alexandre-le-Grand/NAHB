@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const db = require('../models/index');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -7,12 +7,12 @@ exports.register = async (req, res) => {
         const { username, email, password, role } = req.body; 
         const salt = await bcrypt.genSalt(10);
 
-        const isRegistered = await User.findOne({ where: { email } });
+        const isRegistered = await db.User.findOne({ where: { email } });
         if (isRegistered) return res.status(400).json({ message: "Email déjà utilisé" });
 
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const newUser = await User.create({
+        const newUser = await db.User.create({
             username,
             email,
             password: hashedPassword,
@@ -28,17 +28,15 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ where: { email } });
+        const user = await db.User.findOne({ where: { email } });
 
         if (!user) return res.status(400).json({ message: "Email ou mot de passe incorrect" });
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: "Email ou mot de passe incorrect" });
 
-        // Assurer que le rôle est défini et non null
         const role = user.role || 'user';
 
-        // Génération token JWT
         const token = jwt.sign(
             { id: user.id, role },
             process.env.JWT_SECRET,
@@ -58,8 +56,7 @@ exports.login = async (req, res) => {
 
 exports.me = async (req, res) => {
     try {
-        // req.user est défini par verifyToken
-        const user = await User.findByPk(req.user.id, {
+        const user = await db.User.findByPk(req.user.id, {
             attributes: ['id', 'username', 'email', 'role']
         });
         if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });

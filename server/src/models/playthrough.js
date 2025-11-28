@@ -15,9 +15,9 @@ const Playthrough = sequelize.define('Playthrough', {
     allowNull: true // Peut être null si la partie est "en_cours"
   },
   status: {
-    type: DataTypes.ENUM('in_progress', 'finished'),
+    type: DataTypes.ENUM('non_lu', 'en_cours', 'fini'),
     allowNull: false,
-    defaultValue: 'in_progress'
+    defaultValue: 'non_lu'
   },
 });
 

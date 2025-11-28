@@ -1,0 +1,120 @@
+.container {
+    padding: 40px 20px;
+    color: #e2e8f0;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background-color: #0f172a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.main {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.header {
+    text-align: center;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 20px;
+}
+
+.title {
+    margin: 0;
+    font-size: 42px;
+    letter-spacing: -1px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.description {
+    margin: 8px 0 0 0;
+    color: #94a3b8;
+    font-size: 18px;
+}
+
+.article {
+    font-size: 20px;
+    line-height: 1.7;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+}
+
+.choicesContainer {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.choiceButton {
+    padding: 18px 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    font-weight: 600;
+    font-size: 16px;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.choiceButton:hover {
+    background-color: #334155;
+    border-color: #475569;
+}
+
+.endingText {
+    margin-top: 30px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    color: #facc15;
+    padding: 20px;
+    background: rgba(250, 204, 21, 0.1);
+    border-radius: 12px;
+    border: 1px solid #facc15;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    align-items: center;
+    width: 100%;
+    max-width: 800;
+}
+
+.backLink {
+    color: #38bdf8;
+    text-decoration: none;
+    background: transparent;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.backLink:hover {
+    background-color: #1e293b;
+}
+
+.deleteButton {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid #ef4444;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.deleteButton:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}

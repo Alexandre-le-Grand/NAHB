@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./src/config/db');
 
-// ROUTES
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const storyRoutes = require('./src/routes/storyRoutes');
@@ -11,24 +10,20 @@ const storyRoutes = require('./src/routes/storyRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// --- MIDDLEWARES ---
 app.use(cors({
-    origin: "http://localhost:5173", // ton front
+    origin: "http://localhost:5173",
     methods: "GET,POST,PUT,DELETE",
     credentials: true
 }));app.use(express.json());
 
-// --- ROUTES ---
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/stories', storyRoutes);
 
-// TEST ROOT
 app.get('/', (req, res) => {
     res.send("API OK 🚀");
 });
 
-// --- DB + START SERVER ---
 sequelize.sync({ force: false })
     .then(() => {
         console.log("✅ DB synchronisée");

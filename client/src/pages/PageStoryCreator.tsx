@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "./AuthContext";
 
 type ChoiceDraft = {
   id: string;
@@ -22,6 +23,7 @@ export default function PageStoryCreator(): JSX.Element {
   const { storyId } = useParams<{ storyId?: string }>();
   const navigate = useNavigate();
   const isEditing = !!storyId;
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [pages, setPages] = useState<PageDraft[]>([]);
@@ -30,25 +32,19 @@ export default function PageStoryCreator(): JSX.Element {
   const [choices, setChoices] = useState<ChoiceDraft[]>([{ id: genId("c_"), text: "", nextPageIndex: null }]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem("user");
-    
-    if (!token) {
+    if (!isLoading && !isAuthenticated) {
         navigate('/login');
-    } else if (userData) {
-        setUser(JSON.parse(userData));
     }
-  }, [navigate]);
+  }, [isLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
     if (isEditing) {
       const fetchStoryForEdit = async () => {
         try {
-          setLoading(true);
+          setPageLoading(true);
           const res = await fetch(`http://localhost:5000/stories/${storyId}/full`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
           });
@@ -76,7 +72,7 @@ export default function PageStoryCreator(): JSX.Element {
         } catch (err) {
           setError((err as Error).message);
         } finally {
-          setLoading(false);
+          setPageLoading(false);
         }
       };
       fetchStoryForEdit();
@@ -84,8 +80,7 @@ export default function PageStoryCreator(): JSX.Element {
   }, [isEditing, storyId]);
 
   const handleLogout = () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      logout();
       navigate('/login');
   };
 
@@ -203,7 +198,7 @@ export default function PageStoryCreator(): JSX.Element {
       return;
     }
     try {
-      setLoading(true);
+      setPageLoading(true);
       const url = isEditing ? `http://localhost:5000/stories/${storyId}/full` : "http://localhost:5000/stories/createStoryWithPages";
       const res = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
@@ -225,7 +220,7 @@ export default function PageStoryCreator(): JSX.Element {
       console.error(err);
       setError("Impossible de joindre le serveur.");
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
   
@@ -235,24 +230,6 @@ export default function PageStoryCreator(): JSX.Element {
     <div style={styles.container}>
       <div style={styles.blob1}></div>
       <div style={styles.blob2}></div>
-
-      <nav style={styles.navbar}>
-        <Link to="/acceuil" style={styles.logo}>
-            <span style={{ fontSize: "24px", marginRight: "10px" }}>{isEditing ? '✏️' : '✍️'}</span> 
-            Story Creator
-        </Link>
-        <div style={styles.navRight}>
-            <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={styles.userInfo}>
-                    <div style={styles.avatar}>{user.username.charAt(0).toUpperCase()}</div>
-                    <span style={styles.username}>{user.username}</span>
-                </div>
-            </Link>
-            <button onClick={handleLogout} style={styles.logoutBtn}>
-                Déconnexion
-            </button>
-        </div>
-      </nav>
 
       <main style={styles.main}>
         <h1 style={styles.pageTitle}>{isEditing ? "Modifier l'histoire" : "Créer une nouvelle histoire"}</h1>
@@ -406,8 +383,7 @@ export default function PageStoryCreator(): JSX.Element {
           {error && <div style={styles.errorBox}>{error}</div>}
           {message && <div style={styles.successBox}>{message}</div>}
           <div style={{ display: "flex", gap: 12, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setPages([]); resetEditor(); setTitle(""); setDescription(""); setMessage(null); setError(null); }} style={{...styles.button, ...styles.buttonSecondary}}>Réinitialiser</button>
-            <button onClick={submitStory} disabled={loading} style={{...styles.button, ...styles.buttonPrimary}}>{loading ? (isEditing ? "Mise à jour..." : "Création...") : (isEditing ? "Mettre à jour l'histoire" : "Créer l'histoire")}</button>
+            <button onClick={() => { setPages([]); resetEditor(); setTitle(""); setDescription(""); setMessage(null); setError(null); }} style={{...styles.button, ...styles.buttonSecondary}}>Réinitialiser</button>            <button onClick={submitStory} disabled={pageLoading} style={{...styles.button, ...styles.buttonPrimary}}>{pageLoading ? (isEditing ? "Mise à jour..." : "Création...") : (isEditing ? "Mettre à jour l'histoire" : "Créer l'histoire")}</button>
           </div>
         </div>
       </main>

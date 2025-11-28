@@ -81,23 +81,6 @@ export default function UserList() {
       <div style={styles.blob1}></div>
       <div style={styles.blob2}></div>
 
-      {/* NAVBAR */}
-      <nav style={styles.navbar}>
-        <Link to="/acceuil" style={styles.logo}>
-          <span style={{ fontSize: "24px", marginRight: "10px" }}>🛡️</span>
-          Admin Panel
-        </Link>
-        <div style={styles.navRight}>
-          <div style={styles.userInfo}>
-            <div style={styles.avatar}>{currentUser?.username.charAt(0).toUpperCase()}</div>
-            <span style={styles.username}>{currentUser?.username}</span>
-          </div>
-          <button onClick={logout} style={styles.logoutBtn}>
-            Déconnexion
-          </button>
-        </div>
-      </nav>
-
       {/* MAIN CONTENT */}
       <main style={styles.main}>
         <h1 style={styles.pageTitle}>Administration des Utilisateurs</h1>

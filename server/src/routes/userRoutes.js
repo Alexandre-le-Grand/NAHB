@@ -1,28 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const { User, Playthrough, Story } = require('../models');
+const db = require('../models');
 const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
 
 router.get('/', verifyAdmin, async (req, res) => {
     try {
-        const users = await User.findAll({ attributes: { exclude: ['password'] } });
+        const users = await db.User.findAll({ attributes: { exclude: ['password'] } });
         res.json(users);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Nouvelle route pour récupérer les histoires jouées par l'utilisateur connecté
 router.get('/me/playthroughs', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
-        const playthroughs = await Playthrough.findAll({
+        const playthroughs = await db.Playthrough.findAll({
             where: { UserId: userId },
             include: [{
-                model: Story, // On inclut l'histoire pour le profil
+                model: db.Story,
                 attributes: ['id', 'title', 'description'],
-                required: false // Utilise LEFT JOIN, pour ne pas planter si l'histoire liée n'existe plus
+                required: false
             }],
+            order: [['updatedAt', 'DESC']] // On trie par date de mise à jour, du plus récent au plus ancien
         });
         res.json(playthroughs);
     } catch (err) {
@@ -32,7 +32,7 @@ router.get('/me/playthroughs', verifyToken, async (req, res) => {
 
 router.delete('/:id', verifyAdmin, async (req, res) => {
     try {
-        await User.destroy({ where: { id: req.params.id } });
+        await db.User.destroy({ where: { id: req.params.id } });
         res.json({ message: "Utilisateur supprimé" });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -41,8 +41,8 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
 
 router.put('/:id/role', verifyAdmin, async (req, res) => {
     try {
-        const { role } = req.body; // on attend { role: 'admin' } ou { role: 'user' }
-        await User.update({ role }, { where: { id: req.params.id } });
+        const { role } = req.body;
+        await db.User.update({ role }, { where: { id: req.params.id } });
         res.json({ message: "Rôle mis à jour" });
     } catch (err) {
         res.status(500).json({ message: err.message });
