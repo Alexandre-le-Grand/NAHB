@@ -86,7 +86,7 @@ export default function Library() {
     };
 
     fetchData();
-  }, [user, navigate]);
+  }, [user]);
 
   const handlePublish = async (storyId: number) => {
     if (!user) return;
@@ -215,8 +215,8 @@ export default function Library() {
               <div className={styles.storyActions}>
                 {(user?.role === 'admin' || user?.id === story.AuthorId) && (
                   <>
-                    {story.statut === 'brouillon' && user?.id === story.AuthorId && (
-                      <button onClick={() => handlePublish(story.id)} className={`${styles.button} ${styles.buttonPrimary}`}>Publier</button>
+                    {story.statut === 'brouillon' && user?.role === 'admin' && (
+                        <button onClick={() => handlePublish(story.id)} className={`${styles.button} ${styles.buttonPrimary}`}>Publier</button>
                     )}
                     <Link to={`/story-creator/${story.id}`} className={`${styles.button} ${styles.buttonSecondary}`}>Modifier</Link>
                     <button onClick={() => handleDelete(story.id)} className={`${styles.button} ${styles.buttonDelete}`}>Supprimer</button>

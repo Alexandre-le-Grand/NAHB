@@ -2,7 +2,8 @@ const Story = require('./Story');
 const Page = require('./Page');
 const Choice = require('./Choice');
 const User = require('./User');
-const Playthrough = require('./playthrough');
+const Playthrough = require('./playthrough'); // Correction du nom de fichier si nécessaire
+const sequelize = require('../config/db'); // Correction du chemin d'importation
 
 // Story - Page
 Story.hasMany(Page, { as: 'pages', foreignKey: 'storyId' });
@@ -33,5 +34,6 @@ module.exports = {
   Page,
   Choice,
   User,
-  Playthrough
+  Playthrough,
+  sequelize // Exporter l'instance sequelize
 };

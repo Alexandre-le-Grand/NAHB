@@ -1,4 +1,5 @@
 const Page = require('../models/Page')
+const Choice = require('../models/Choice') // Assurez-vous que le chemin est correct
 
 exports.createPage = async (req, res) => {
     try {
@@ -22,7 +23,13 @@ exports.getAllPages = async (req, res) => {
 exports.getPageById = async (req, res) => {
     try {
         const { id } = req.params
-        const page = await Page.findByPk(id)
+        // On inclut les choix qui partent de cette page
+        const page = await Page.findByPk(id, {
+            include: [{
+                model: Choice,
+                as: 'Choices' // Cet alias doit correspondre à celui défini dans vos associations de modèles
+            }]
+        })
         if (!page) return res.status(404).json({ message: "Page introuvable" })
         res.json(page)
     } catch (error) {

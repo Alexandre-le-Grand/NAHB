@@ -8,7 +8,7 @@ const createStory = async (req, res) => {
         const { title, description } = req.body;
         if (!title) return res.status(400).json({ message: "Titre obligatoire" });
 
-        const story = await Story.create({
+        const story = await db.Story.create({
             title,
             description,
             AuthorId: req.user.id
