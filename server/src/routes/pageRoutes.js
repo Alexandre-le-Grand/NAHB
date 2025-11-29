@@ -1,12 +1,12 @@
 const express = require('express')
 const router = express.Router()
 const pageController = require('../controllers/pageController')
-const authMiddleware = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
-router.post('/', authMiddleware, pageController.createPage)
+router.post('/', verifyToken, pageController.createPage)
 router.get('/', pageController.getAllPages)
 router.get('/:id', pageController.getPageById)
-router.put('/:id', authMiddleware, pageController.updatePage)
-router.delete('/:id', authMiddleware, pageController.deletePage)
+router.put('/:id', verifyToken, pageController.updatePage)
+router.delete('/:id', verifyToken, pageController.deletePage)
 
 module.exports = router

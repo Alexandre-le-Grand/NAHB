@@ -19,11 +19,10 @@ const Story = sequelize.define('Story', {
   statut: {
     type: DataTypes.ENUM('brouillon', 'publié', 'suspendu'),
     defaultValue: 'brouillon'
-  }
-}, {
+  }}, {
   freezeTableName: true,
   timestamps: false
-})
+});
 
 
 module.exports = Story

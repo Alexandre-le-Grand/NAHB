@@ -22,10 +22,6 @@ const User = sequelize.define('User', {
   role: {
     type: DataTypes.ENUM('user','author','admin'),
     defaultValue: 'user'
-  },
-  isBanned: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
   }
 }, {
   freezeTableName: true,

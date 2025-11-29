@@ -40,6 +40,7 @@ export default function ReadStory() {
         setLoading(false);
         return;
       }
+              console.log(`voici l'id de l'histoire: ${id}`);
 
       try {
         const res = await fetch(`http://localhost:5000/stories/${id}`, {
@@ -47,9 +48,11 @@ export default function ReadStory() {
         });
 
         if (!res.ok) throw new Error('Erreur lors de la récupération de l\'histoire');
-
+        else{
+          console.log(`Histoire ${id} récupérée avec succès.`);
+        }
         const data: Story = await res.json();
-
+        console.log(`est ce qu'il y a des pages ?  ${data.pages}`); // Affiche la longueur de data.pages.length
         if (!data.pages || data.pages.length === 0) {
           setStory(null);
           setLoading(false);
@@ -62,7 +65,7 @@ export default function ReadStory() {
         setCurrentPage(start || data.pages[0]);
 
       } catch (err) {
-        console.error(err);
+        console.error("Erreur lors de la récupération de l'histoire:", err);
       } finally {
         setLoading(false);
       }

@@ -27,7 +27,7 @@ exports.getPageById = async (req, res) => {
         const page = await Page.findByPk(id, {
             include: [{
                 model: Choice,
-                as: 'Choices' // Cet alias doit correspondre à celui défini dans vos associations de modèles
+                as: 'choicesFrom' // Correction de l'alias pour correspondre à la définition du modèle
             }]
         })
         if (!page) return res.status(404).json({ message: "Page introuvable" })

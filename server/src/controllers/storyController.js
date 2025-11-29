@@ -23,36 +23,30 @@ const createStory = async (req, res) => {
 // GET ALL STORIES (filtrage selon rôle)
 const getAllStories = async (req, res) => {
     try {
-        let stories;
+        if (!req.user) {
+            return res.status(401).json({ message: "Accès non autorisé, utilisateur non trouvé dans la requête." });
+        }
+        const { role, id: userId } = req.user;
 
-        if (req.user && req.user.role === 'admin') {
-            stories = await db.Story.findAll({
-                attributes: { include: ['AuthorId'] }
+        // Règle 1: L'admin voit tout.
+        if (role === 'admin') {
+            const stories = await db.Story.findAll({
+                include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
             });
-        } else {
-            const bannedUserIds = await db.User.findAll({
-                where: { isBanned: true },
-                attributes: ['id']
-            }).map(u => u.id);
+            return res.json(stories);
+        } 
+        else{
+        const stories = await db.Story.findAll({
+            where:{
+                statut: 'publié'
+            },
+            include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
+            
+        });
+                return res.json(stories);
 
-            const orClauses = [{ AuthorId: req.user ? req.user.id : null }];
-
-            const publicStoriesClause = { statut: 'publié' };
-            if (bannedUserIds.length > 0) {
-                publicStoriesClause.AuthorId = { [Op.notIn]: bannedUserIds };
-            }
-            orClauses.push(publicStoriesClause);
-
-            stories = await db.Story.findAll({
-                where: {
-                    statut: { [Op.ne]: 'suspendu' },
-                    [Op.or]: orClauses
-                },
-                attributes: { include: ['AuthorId'] }
-            });
         }
 
-        res.json(stories);
     } catch (err) {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
@@ -64,6 +58,11 @@ const getMyStories = async (req, res) => {
         const authorId = req.user.id;
         const stories = await db.Story.findAll({
             where: { AuthorId: authorId },
+            include: [{ // On ajoute l'include pour être cohérent
+                model: db.User,
+                as: 'author',
+                attributes: ['id', 'username']
+            }],
         });
         res.json(stories);
     } catch (err) {
@@ -74,31 +73,27 @@ const getMyStories = async (req, res) => {
 // GET STORY BY ID
 const getStoryById = async (req, res) => {
     try {
-        // On inclut l'AuthorId pour vérifier les permissions côté client
-            const story = await db.Story.findByPk(req.params.id, {
-                include: [
-                    {
-                        model: db.Page,
-                        as: 'pages',
-                        include: [
-                            {
-                                model: db.Choice,
-                                as: 'choicesFrom',
-                            }
-                        ]
-                    }
-                ],
-                attributes: { include: ['AuthorId'] }
-            });
+        const story = await db.Story.findByPk(req.params.id, {
+            include: [
+                {
+                    model: db.Page,
+                    as: 'pages',
+                    include: [
+                        { model: db.Choice, as: 'choicesFrom' },
+                    ]
+                },
+                { model: db.User, as: 'author' }
+            ]
+        });
 
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
-        // Convert Sequelize instance to plain object and ensure pages have `choices` array
+        // Convertir l'instance Sequelize en objet simple et s'assurer que les pages ont un tableau `choices`
         const plain = story.toJSON ? story.toJSON() : story;
         if (plain.pages && Array.isArray(plain.pages)) {
             plain.pages = plain.pages.map(p => ({
                 ...p,
-                // prefer existing `choices` but fallback to `choicesFrom` alias used in associations
+                // préférer `choices` existant mais se rabattre sur l'alias `choicesFrom` utilisé dans les associations
                 choices: p.choices || p.choicesFrom || []
             }));
         }
@@ -426,6 +421,37 @@ const suspendStory = async (req, res) => {
     }
 };
 
+// GET STORY STATS (lectures, fins atteintes)
+const getStoryStats = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.id;
+
+        // Vérifier que l'histoire existe et que l'utilisateur a la permission de voir les stats
+        const story = await db.Story.findByPk(storyId);
+        if (!story) {
+            return res.status(404).json({ message: "Histoire introuvable." });
+        }
+        if (story.AuthorId !== userId && req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Accès refusé aux statistiques de cette histoire." });
+        }
+
+        // Compter le nombre total de lectures (parties commencées)
+        const lectures = await db.Playthrough.count({
+            where: { StoryId: storyId }
+        });
+
+        // Compter le nombre de fins atteintes
+        const finsAtteintes = await db.Playthrough.count({
+            where: { StoryId: storyId, status: 'fini' }
+        });
+
+        res.json({ lectures, finsAtteintes });
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur lors de la récupération des statistiques.", error: err.message });
+    }
+};
+
 // Dev helper: create a sample story with pages and choices for UI testing.
 
 module.exports = {
@@ -442,5 +468,5 @@ module.exports = {
     getFullStory,
     suspendStory,
     startPlaythrough, // Export the new function
-
+    getStoryStats,
 };

@@ -7,7 +7,6 @@ interface User {
   username: string;
   email: string;
   role: string;
-  isBanned: boolean;
 }
 
 export default function UserList() {
@@ -49,30 +48,6 @@ export default function UserList() {
     fetchUsers();
   }, [isLoading, isAuthenticated, currentUser, navigate]);
 
-  const handleToggleBan = async (id: number) => {
-    const token = localStorage.getItem('token');
-    const userToToggle = users.find(u => u.id === id);
-    if (!userToToggle) return;
-
-    const action = userToToggle.isBanned ? 'débannir' : 'bannir';
-    if (!window.confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) return;
-    
-    const res = await fetch(`http://localhost:5000/users/${id}/ban`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    if (res.ok) {
-      const updatedUser = await res.json();
-      setUsers(users.map(u => u.id === id ? updatedUser : u));
-    } else {
-      setError(`L'opération de ${action} a échoué.`);
-    }
-  };
-
  const handleRoleChange = async (id: number, currentRole: string) => {
   const token = localStorage.getItem('token');
   const roles = ["user", "author", "admin"];
@@ -111,34 +86,27 @@ export default function UserList() {
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id} style={user.isBanned ? { opacity: 0.5, textDecoration: 'line-through' } : {}}>
+                <tr key={user.id}>
                   <td style={styles.td}>{user.id}</td>
                   <td style={styles.td}>{user.username}</td>
                   <td style={styles.td}>{user.email}</td>
                   <td style={styles.td}>
                     <span style={{
                       ...styles.badge,
-                      backgroundColor: user.isBanned ? '#4b5563' : (user.role === "admin" ? "rgba(239, 68, 68, 0.2)" : "rgba(16, 185, 129, 0.2)"),
-                      color: user.isBanned ? '#d1d5db' : (user.role === "admin" ? "#fca5a5" : "#6ee7b7"),
-                      border: user.isBanned ? '1px solid #6b7280' : (user.role === "admin" ? "1px solid #ef4444" : "1px solid #10b981")
+                      backgroundColor: (user.role === "admin" ? "rgba(239, 68, 68, 0.2)" : "rgba(16, 185, 129, 0.2)"),
+                      color: (user.role === "admin" ? "#fca5a5" : "#6ee7b7"),
+                      border: (user.role === "admin" ? "1px solid #ef4444" : "1px solid #10b981")
                     }}>
-                      {user.isBanned ? 'BANNI' : user.role.toUpperCase()}
+                      {user.role.toUpperCase()}
                     </span>
                   </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button
-                        disabled={user.isBanned}
                         onClick={() => handleRoleChange(user.id, user.role)}
                         style={{ ...styles.btn, ...styles.btnPromote }}
                       >
                         {user.role === 'user' ? 'Promouvoir' : 'Rétrograder'}
-                      </button>
-                      <button
-                        onClick={() => handleToggleBan(user.id)}
-                        style={{ ...styles.btn, ...(user.isBanned ? styles.btnUnban : styles.btnDelete) }}
-                      >
-                        {user.isBanned ? 'Débannir' : 'Bannir'}
                       </button>
                     </div>
                   </td>
@@ -151,6 +119,10 @@ export default function UserList() {
     </div>
   );
 }
+
+
+
+
 
 const styles: any = {
   container: {

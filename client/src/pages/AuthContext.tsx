@@ -24,32 +24,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const validateToken = async () => {
+      // Étape 1: Essayer de charger l'utilisateur depuis le cache local pour un chargement rapide
       const token = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
 
-      if (!token) {
+      if (storedUser) {
+        try {
+          const userData: User = JSON.parse(storedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+        } catch (e) {
+          // Le JSON est corrompu, on nettoie
+          localStorage.removeItem('user');
+        }
+      }
+
+      // Étape 2: Valider le token avec le serveur en arrière-plan
+      if (!token) { // S'il n'y a pas de token, on arrête tout de suite.
         setIsLoading(false);
         return;
       }
 
       try {
+        // On valide le token pour s'assurer qu'il est toujours bon
         const response = await fetch('http://localhost:5000/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
           const userData: User = await response.json();
-          setUser(userData);
-          setIsAuthenticated(true);
-          localStorage.setItem('user', JSON.stringify(userData));
+          login(userData, token); // On utilise login pour tout mettre à jour proprement
         } else {
-          logout();
+          // Si le token est invalide, on déconnecte silencieusement sans effacer l'utilisateur du cache
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error("Erreur de validation du token", error);
-        logout();
       } finally {
         setIsLoading(false);
       }

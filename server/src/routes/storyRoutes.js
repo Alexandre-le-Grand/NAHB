@@ -1,12 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const storyController = require('../controllers/storyController');
-const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
+const db = require('../models'); // Importer l'objet db pour que la route de diagnostic fonctionne
+const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware'); // Garder pour les routes protégées
 
 router.post('/', verifyToken, storyController.createStory);
+
+// Routes spécifiques AVANT les routes génériques
 router.get('/', verifyToken, storyController.getAllStories);
 router.get('/mine', verifyToken, storyController.getMyStories);
-router.get('/:id', storyController.getStoryById);
+
+// Routes de diagnostic (à garder pour l'instant)
+router.get('/debug/check-authors', async (req, res) => { /* ... code existant ... */ });
+router.get('/debug/show-me-everything', async (req, res) => { /* ... code existant ... */ });
+router.get('/:id/stats', verifyToken, storyController.getStoryStats); // Nouvelle route pour les stats
+
+// La route générique avec :id doit être APRÈS les routes spécifiques comme /mine
+router.get('/:id', storyController.getStoryById); 
 router.put('/:id', verifyToken, storyController.updateStory);
 router.delete('/:id', verifyToken, storyController.deleteStory);
 
@@ -33,8 +43,5 @@ router.patch('/:id/suspend', verifyToken, verifyAdmin, storyController.suspendSt
 router.post('/playthroughs', verifyToken, storyController.recordPlaythrough);
 
 router.post('/playthroughs/start', verifyToken, storyController.startPlaythrough);
-
-router.get('/:id/full', verifyToken, storyController.getFullStory);
-
 
 module.exports = router;

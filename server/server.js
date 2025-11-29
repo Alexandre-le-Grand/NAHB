@@ -6,6 +6,8 @@ const sequelize = require('./src/config/db');
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const storyRoutes = require('./src/routes/storyRoutes');
+const pageRoutes = require('./src/routes/pageRoutes');
+const choiceRoutes = require('./src/routes/choiceRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +21,8 @@ app.use(cors({
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/stories', storyRoutes);
+app.use('/pages', pageRoutes);
+app.use('/choices', choiceRoutes);
 
 app.get('/', (req, res) => {
     res.send("API OK 🚀");

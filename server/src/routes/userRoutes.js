@@ -49,25 +49,4 @@ router.put('/:id/role', verifyAdmin, async (req, res) => {
     }
 });
 
-router.put('/:id/ban', verifyAdmin, async (req, res) => {
-    try {
-        const userToUpdate = await db.User.findByPk(req.params.id);
-        if (!userToUpdate) {
-            return res.status(404).json({ message: "Utilisateur introuvable" });
-        }
-
-        const newBanStatus = !userToUpdate.isBanned;
-
-        await userToUpdate.update({
-            isBanned: newBanStatus,
-            // Si on bannit, on rétrograde. Si on débannit, le rôle reste 'user'.
-            role: newBanStatus ? 'user' : userToUpdate.role
-        });
-
-        res.json(userToUpdate);
-    } catch (err) {
-        res.status(500).json({ message: "Erreur lors de la modification du statut de bannissement.", error: err.message });
-    }
-});
-
 module.exports = router;

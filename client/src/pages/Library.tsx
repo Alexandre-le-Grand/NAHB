@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import styles from '../css/Library.module.css';
+import { StoryStats } from '../components/StoryStats'; // Importer le nouveau composant
 
 interface Story {
   id: number;
@@ -35,28 +36,29 @@ export default function Library() {
       navigate('/login');
   };
 
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
+  const fetchData = async () => {
+      setLoading(true);
       const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        navigate('/login');
-        return;
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+
       try {
+        // Puisque l'utilisateur est toujours authentifié ici, on peut faire les deux appels en parallèle.
         const [storiesRes, playthroughsRes] = await Promise.all([
           fetch('http://localhost:5000/stories', {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: headers,
           }),
           fetch('http://localhost:5000/users/me/playthroughs', {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: headers,
           })
         ]);
+
+        if (playthroughsRes.ok) {
+          const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
+          updatePlaythroughStatuses(playthroughsData);
+        }
 
         if (!storiesRes.ok) {
           console.error("Erreur lors de la récupération des histoires:", storiesRes.status, storiesRes.statusText);
@@ -66,17 +68,6 @@ export default function Library() {
           setStories(storiesData);
         }
 
-        if (playthroughsRes.ok) {
-          const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
-          const statusesMap = (playthroughsData || []).reduce((acc: Record<number, 'en_cours' | 'fini'>, p) => {
-            if (!acc[p.StoryId]) {
-              acc[p.StoryId] = p.status;
-            }
-            return acc;
-          }, {});
-          setPlaythroughStatuses(statusesMap);
-        }
-
       } catch (err) {
         console.error(err);
         setStories([]); // Assure que stories est un tableau même en cas d'erreur
@@ -84,10 +75,26 @@ export default function Library() {
         setLoading(false);
       }
     };
+    
+  const updatePlaythroughStatuses = (playthroughsData: PlaythroughData[]) => {
+    const statusesMap = (playthroughsData || []).reduce((acc: Record<number, 'en_cours' | 'fini'>, p) => {
+      if (!acc[p.StoryId]) {
+        acc[p.StoryId] = p.status;
+      }
+      return acc;
+    }, {});
+    setPlaythroughStatuses(statusesMap);
+  };
 
+  useEffect(() => {
     fetchData();
-  }, [user]);
 
+    // Ajout d'un écouteur pour rafraîchir les données quand on revient sur la page
+    window.addEventListener('focus', fetchData);
+    return () => {
+      window.removeEventListener('focus', fetchData);
+    };
+  }, [user]); // On garde `user` comme dépendance pour recharger si l'utilisateur se connecte/déconnecte
   const handlePublish = async (storyId: number) => {
     if (!user) return;
 
@@ -211,11 +218,12 @@ export default function Library() {
                     {story.statut.toUpperCase()}
                   </span>
                 </div>
+                <StoryStats storyId={story.id} />
               </div>
               <div className={styles.storyActions}>
-                {(user?.role === 'admin' || user?.id === story.AuthorId) && (
+                {(user?.role === 'admin') && (
                   <>
-                    {story.statut === 'brouillon' && user?.role === 'admin' && (
+                    {story.statut === 'brouillon' && (
                         <button onClick={() => handlePublish(story.id)} className={`${styles.button} ${styles.buttonPrimary}`}>Publier</button>
                     )}
                     <Link to={`/story-creator/${story.id}`} className={`${styles.button} ${styles.buttonSecondary}`}>Modifier</Link>
