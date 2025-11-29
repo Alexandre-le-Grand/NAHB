@@ -150,7 +150,13 @@ const updateStoryWithPages = async (req, res) => {
         const oldPages = await db.Page.findAll({ where: { storyId: story.id }, transaction: t });
         if (oldPages.length > 0) {
             const oldPageIds = oldPages.map(p => p.id);
-            await db.Choice.destroy({ where: { source_PageId: oldPageIds } }, { transaction: t });
+            // Supprimer tous les choix liés à ces pages (source OU destination)
+            await db.Choice.destroy({
+                where: {
+                    [Op.or]: [{ source_PageId: oldPageIds }, { next_PageId: oldPageIds }]
+                }
+            }, { transaction: t });
+
             await db.Page.destroy({ where: { storyId: story.id } }, { transaction: t });
         }
 
@@ -161,7 +167,7 @@ const updateStoryWithPages = async (req, res) => {
                 isEnding: pages[i].isEnding || false,
                 storyId: story.id
             }, { transaction: t });
-            pageMap.push({ index: i, id: p.id, tempId: pages[i].id });
+            pageMap.push({ index: i, id: p.id, tempId: pages[i].id, isEnding: pages[i].isEnding || false });
         }
 
         for (let i = 0; i < pages.length; i++) {
@@ -413,8 +419,6 @@ const suspendStory = async (req, res) => {
         await story.update({
             statut: newStatus
         });
-
-        await story.reload();
 
         res.json({ message: `Statut de l'histoire mis à jour à '${newStatus}'.`, story: story });
     } catch (err) {
