@@ -17,12 +17,8 @@ const Story = sequelize.define('Story', {
     type: DataTypes.INTEGER
   },
   statut: {
-    type: DataTypes.ENUM('brouillon','publié'),
+    type: DataTypes.ENUM('brouillon', 'publié', 'suspendu'),
     defaultValue: 'brouillon'
-  },
-  isSuspended: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
   }
 }, {
   freezeTableName: true,

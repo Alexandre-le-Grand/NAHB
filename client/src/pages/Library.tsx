@@ -58,20 +58,28 @@ export default function Library() {
           })
         ]);
 
-        const storiesData: Story[] = await storiesRes.json();
-        const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
+        if (!storiesRes.ok) {
+          console.error("Erreur lors de la récupération des histoires:", storiesRes.status, storiesRes.statusText);
+          setStories([]); // Assure que stories est toujours un tableau
+        } else {
+          const storiesData: Story[] = await storiesRes.json();
+          setStories(storiesData);
+        }
 
-        const statusesMap = (playthroughsData || []).reduce((acc: Record<number, 'en_cours' | 'fini'>, p) => {
-          // Comme le backend trie par date de mise à jour, on ne garde que le premier statut qu'on voit pour chaque histoire.
-          if (!acc[p.StoryId]) {
-            acc[p.StoryId] = p.status;
-          }
-          return acc;
-        }, {});
-        setPlaythroughStatuses(statusesMap);
-        setStories(storiesData);
+        if (playthroughsRes.ok) {
+          const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
+          const statusesMap = (playthroughsData || []).reduce((acc: Record<number, 'en_cours' | 'fini'>, p) => {
+            if (!acc[p.StoryId]) {
+              acc[p.StoryId] = p.status;
+            }
+            return acc;
+          }, {});
+          setPlaythroughStatuses(statusesMap);
+        }
+
       } catch (err) {
         console.error(err);
+        setStories([]); // Assure que stories est un tableau même en cas d'erreur
       } finally {
         setLoading(false);
       }

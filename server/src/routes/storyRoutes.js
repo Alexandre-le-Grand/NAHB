@@ -28,6 +28,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 router.put('/:id/publish', verifyToken, verifyAdmin, storyController.publishStory);
 
+router.patch('/:id/suspend', verifyToken, verifyAdmin, storyController.suspendStory);
+
 router.post('/playthroughs', verifyToken, storyController.recordPlaythrough);
 
 router.post('/playthroughs/start', verifyToken, storyController.startPlaythrough);

@@ -25,22 +25,30 @@ const getAllStories = async (req, res) => {
     try {
         let stories;
 
-        if (req.user && req.user.role === 'admin') { // Les admins voient tout
+        if (req.user && req.user.role === 'admin') {
             stories = await db.Story.findAll({
-                attributes: { include: ['AuthorId'] } // Assurer que AuthorId est inclus
+                attributes: { include: ['AuthorId'] }
             });
         } else {
-            // Les utilisateurs non-admin voient les histoires publiées ET leurs propres brouillons.
-            // Ils ne voient JAMAIS les histoires suspendues.
+            const bannedUserIds = await db.User.findAll({
+                where: { isBanned: true },
+                attributes: ['id']
+            }).map(u => u.id);
+
+            const orClauses = [{ AuthorId: req.user ? req.user.id : null }];
+
+            const publicStoriesClause = { statut: 'publié' };
+            if (bannedUserIds.length > 0) {
+                publicStoriesClause.AuthorId = { [Op.notIn]: bannedUserIds };
+            }
+            orClauses.push(publicStoriesClause);
+
             stories = await db.Story.findAll({
                 where: {
                     statut: { [Op.ne]: 'suspendu' },
-                    [Op.or]: [
-                        { statut: 'publié' },
-                        { AuthorId: req.user ? req.user.id : null }
-                    ]
+                    [Op.or]: orClauses
                 },
-                attributes: { include: ['AuthorId'] } // Assurer que AuthorId est inclus
+                attributes: { include: ['AuthorId'] }
             });
         }
 

@@ -1,57 +1,80 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
 interface User {
   id: number;
   username: string;
   email: string;
   role: string;
+  isBanned: boolean;
 }
 
 export default function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  const token = localStorage.getItem('token');
-  const userJson = localStorage.getItem('user');
-  const currentUser = userJson ? JSON.parse(userJson) : null;
+  const { user: currentUser, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!token || !currentUser || currentUser.role !== 'admin') {
-      navigate('/');
+    if (isLoading) {
       return;
     }
-    fetchUsers();
-  }, [navigate, token]);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) throw new Error('Accès refusé');
-
-      const data = await res.json();
-      setUsers(data);
-    } catch (err) {
-      setError("Impossible de charger les utilisateurs");
+    if (!isAuthenticated || currentUser?.role !== 'admin') {
+      navigate('/acceuil');
+      return;
     }
-  };
 
-  const handleBan = async (id: number) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) return;
+    const fetchUsers = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Token manquant, impossible de charger les utilisateurs.");
+        return;
+      }
+      try {
+        const res = await fetch('http://localhost:5000/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-    await fetch(`http://localhost:5000/users/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
+        if (!res.ok) throw new Error('Accès refusé ou erreur serveur');
+
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        setError("Impossible de charger les utilisateurs");
+      }
+    };
+
+    fetchUsers();
+  }, [isLoading, isAuthenticated, currentUser, navigate]);
+
+  const handleToggleBan = async (id: number) => {
+    const token = localStorage.getItem('token');
+    const userToToggle = users.find(u => u.id === id);
+    if (!userToToggle) return;
+
+    const action = userToToggle.isBanned ? 'débannir' : 'bannir';
+    if (!window.confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) return;
+    
+    const res = await fetch(`http://localhost:5000/users/${id}/ban`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      }
     });
 
-    setUsers(users.filter(u => u.id !== id));
+    if (res.ok) {
+      const updatedUser = await res.json();
+      setUsers(users.map(u => u.id === id ? updatedUser : u));
+    } else {
+      setError(`L'opération de ${action} a échoué.`);
+    }
   };
 
  const handleRoleChange = async (id: number, currentRole: string) => {
+  const token = localStorage.getItem('token');
   const roles = ["user", "author", "admin"];
   const currentIndex = roles.indexOf(currentRole);
   const newRole = roles[(currentIndex + 1) % roles.length];
@@ -67,13 +90,6 @@ export default function UserList() {
 
   setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u));
 };
-
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
-  };
 
   return (
     <div style={styles.container}>
@@ -95,33 +111,34 @@ export default function UserList() {
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id}>
+                <tr key={user.id} style={user.isBanned ? { opacity: 0.5, textDecoration: 'line-through' } : {}}>
                   <td style={styles.td}>{user.id}</td>
                   <td style={styles.td}>{user.username}</td>
                   <td style={styles.td}>{user.email}</td>
                   <td style={styles.td}>
                     <span style={{
                       ...styles.badge,
-                      backgroundColor: user.role === "admin" ? "rgba(239, 68, 68, 0.2)" : "rgba(16, 185, 129, 0.2)",
-                      color: user.role === "admin" ? "#fca5a5" : "#6ee7b7",
-                      border: user.role === "admin" ? "1px solid #ef4444" : "1px solid #10b981"
+                      backgroundColor: user.isBanned ? '#4b5563' : (user.role === "admin" ? "rgba(239, 68, 68, 0.2)" : "rgba(16, 185, 129, 0.2)"),
+                      color: user.isBanned ? '#d1d5db' : (user.role === "admin" ? "#fca5a5" : "#6ee7b7"),
+                      border: user.isBanned ? '1px solid #6b7280' : (user.role === "admin" ? "1px solid #ef4444" : "1px solid #10b981")
                     }}>
-                      {user.role.toUpperCase()}
+                      {user.isBanned ? 'BANNI' : user.role.toUpperCase()}
                     </span>
                   </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button
+                        disabled={user.isBanned}
                         onClick={() => handleRoleChange(user.id, user.role)}
                         style={{ ...styles.btn, ...styles.btnPromote }}
                       >
                         {user.role === 'user' ? 'Promouvoir' : 'Rétrograder'}
                       </button>
                       <button
-                        onClick={() => handleBan(user.id)}
-                        style={{ ...styles.btn, ...styles.btnDelete }}
+                        onClick={() => handleToggleBan(user.id)}
+                        style={{ ...styles.btn, ...(user.isBanned ? styles.btnUnban : styles.btnDelete) }}
                       >
-                        Bannir
+                        {user.isBanned ? 'Débannir' : 'Bannir'}
                       </button>
                     </div>
                   </td>
@@ -273,4 +290,7 @@ const styles: any = {
   btnDelete: {
       backgroundColor: '#ef4444'
   },
+  btnUnban: {
+      backgroundColor: '#22c55e'
+  }
 };
