@@ -299,7 +299,6 @@ export default function Library() {
                     {story.statut.toUpperCase()}
                   </span>
                 </div>
-                <StoryStats storyId={story.id} />
               </div>
               <div className={styles.storyActions}>
                 {(user?.role === 'admin') && (
