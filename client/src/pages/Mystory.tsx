@@ -9,6 +9,11 @@ interface Story {
   description: string;
   statut: 'brouillon' | 'publié' | 'suspendu'; // Ajout du statut 'suspendu'
   AuthorId?: number;
+  Tags?: { // Le nom est capitalisé par Sequelize et c'est un objet
+    id: number;
+    name: string;
+    status: 'pending' | 'approved';
+  }[];
 }
 
 // Petit composant pour gérer l'affichage des stats
@@ -172,6 +177,13 @@ export default function MyStories() {
             <div key={story.id} className={styles.storyCard}>
               <h3 className={styles.storyTitle}>{story.title}</h3>
               <p className={styles.storyDescription}>{story.description}</p>
+              {Array.isArray(story.Tags) && story.Tags.length > 0 && (
+                <div className={styles.tagsContainer}>
+                  {story.Tags.map((tag) => (
+                    <span key={tag.id} className={styles.tag}>{tag.name}</span>
+                  ))}
+                </div>
+              )}
               <div className={styles.storyMeta}>
                 <span className={`${styles.badge} 
                   ${story.statut === 'publié' ? styles.badgePublished : ''} 

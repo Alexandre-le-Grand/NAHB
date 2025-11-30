@@ -1,18 +1,35 @@
 const db = require('../models/index');
-const { Op } = require('sequelize');
+const { Op, Transaction } = require('sequelize');
 
 
 // CREATE STORY SIMPLE
 const createStory = async (req, res) => {
     try {
-        const { title, description } = req.body;
+        const { title, description, tags } = req.body; // On récupère les tags
         if (!title) return res.status(400).json({ message: "Titre obligatoire" });
+        
+        const story = await db.sequelize.transaction(async (t) => {
+            const newStory = await db.Story.create({
+                title,
+                description,
+                AuthorId: req.user.id
+            }, { transaction: t });
 
-        const story = await db.Story.create({
-            title,
-            description,
-            AuthorId: req.user.id
+            if (tags && tags.length > 0) {
+                const tagInstances = await Promise.all(
+                    tags.map(tagName => db.Tag.findOrCreate({
+                        where: { name: tagName.toLowerCase() },
+                        defaults: { name: tagName.toLowerCase(), status: 'pending' }, // Les nouveaux tags sont en attente
+                        transaction: t
+                    }).then(([tag]) => tag))
+                );
+                await newStory.setTags(tagInstances, { transaction: t });
+            }
+
+            return newStory;
         });
+
+
 
         res.status(201).json(story);
     } catch (err) {
@@ -31,7 +48,10 @@ const getAllStories = async (req, res) => {
         // Règle 1: L'admin voit tout.
         if (role === 'admin') {
             const stories = await db.Story.findAll({
-                include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
+                include: [
+                    { model: db.User, as: 'author', attributes: ['id', 'username'] },
+                    { model: db.Tag, through: { attributes: [] } } // Inclure les tags
+                ]
             });
             return res.json(stories);
         } else {
@@ -55,7 +75,10 @@ const getAllStories = async (req, res) => {
 
             const stories = await db.Story.findAll({
                 where: whereClause,
-                include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
+                include: [
+                    { model: db.User, as: 'author', attributes: ['id', 'username'] },
+                    { model: db.Tag, where: { status: 'approved' }, through: { attributes: [] }, required: false } // Ne montrer que les tags approuvés
+                ]
             });
             return res.json(stories);
         }
@@ -72,11 +95,14 @@ const getMyStories = async (req, res) => {
         const authorId = req.user.id;
         const stories = await db.Story.findAll({
             where: { AuthorId: authorId },
-            include: [{ // On ajoute l'include pour être cohérent
-                model: db.User,
-                as: 'author',
-                attributes: ['id', 'username']
-            }],
+            include: [
+                { 
+                    model: db.User, as: 'author', attributes: ['id', 'username'] 
+                },
+                {
+                    model: db.Tag, through: { attributes: [] } // Inclure tous les tags (approuvés ou non) pour l'auteur
+                }
+            ],
         });
         res.json(stories);
     } catch (err) {
@@ -138,7 +164,7 @@ const updateStoryWithPages = async (req, res) => {
     const { id } = req.params;
     const t = await db.sequelize.transaction();
     try {
-        const { title, description, pages } = req.body;
+        const { title, description, pages, tags } = req.body;
 
         const story = await db.Story.findByPk(id, { transaction: t });
         if (!story) {
@@ -154,6 +180,19 @@ const updateStoryWithPages = async (req, res) => {
 
         // Mise à jour du titre et de la description
         await story.update({ title, description }, { transaction: t });
+
+        // Mise à jour des tags
+        if (tags) { // On ne met à jour que si le champ tags est présent
+            const tagInstances = await Promise.all(
+                tags.map(tagName => db.Tag.findOrCreate({
+                    where: { name: tagName.toLowerCase() },
+                    defaults: { name: tagName.toLowerCase(), status: 'pending' },
+                    transaction: t
+                }).then(([tag]) => tag))
+            );
+            await story.setTags(tagInstances, { transaction: t });
+        }
+
 
         // Suppression des anciennes pages et choix
         const oldPages = await db.Page.findAll({ where: { storyId: story.id }, transaction: t });
@@ -223,7 +262,7 @@ const deleteStory = async (req, res) => {
 const createStoryWithPages = async (req, res) => {
     const t = await db.sequelize.transaction();
     try {
-        const { title, description, pages } = req.body;
+        const { title, description, pages, tags } = req.body;
 
         if (!title || !pages || pages.length === 0)
             return res.status(400).json({ message: "Titre et pages obligatoires" });
@@ -240,6 +279,19 @@ const createStoryWithPages = async (req, res) => {
             description,
             AuthorId: authorId
         }, { transaction: t });
+
+        // Gestion des tags
+        if (tags && tags.length > 0) {
+            const tagInstances = await Promise.all(
+                tags.map(tagName => db.Tag.findOrCreate({
+                    where: { name: tagName.toLowerCase() },
+                    defaults: { name: tagName.toLowerCase(), status: 'pending' },
+                    transaction: t
+                }).then(([tag]) => tag))
+            );
+            await story.setTags(tagInstances, { transaction: t });
+        }
+
 
         // pageMap keeps mapping between client-provided temp ids / indexes and created DB ids
         const pageMap = [];

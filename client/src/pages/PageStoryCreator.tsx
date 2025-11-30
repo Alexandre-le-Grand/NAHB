@@ -25,6 +25,7 @@ export default function PageStoryCreator(): JSX.Element {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [tags, setTags] = useState<string>(""); // État pour les tags
   const [pages, setPages] = useState<PageDraft[]>([]);
   const [content, setContent] = useState<string>("");
   const [isEnding, setIsEnding] = useState<boolean>(false);
@@ -53,6 +54,9 @@ export default function PageStoryCreator(): JSX.Element {
           
           setTitle(storyData.title);
           setDescription(storyData.description);
+          if (storyData.Tags && Array.isArray(storyData.Tags)) {
+            setTags(storyData.Tags.map(t => t.name).join(', ')); // On transforme le tableau d'objets Tag en chaîne
+          }
 
           const pagesForEditor = storyData.pages.map((p: any) => ({
             id: p.id.toString(), // Utiliser l'ID de la BDD comme ID temporaire
@@ -177,6 +181,7 @@ export default function PageStoryCreator(): JSX.Element {
     const payload = {
       title: title.trim(),
       description: description.trim(),
+      tags: tags.split(',').map(tag => tag.trim()).filter(Boolean), // On transforme la chaîne en tableau de noms de tags
       pages: pages.map((pg, index) => ({
         id: pg.id,
         content: pg.content,
@@ -246,6 +251,15 @@ export default function PageStoryCreator(): JSX.Element {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               style={{...styles.input, minHeight: 64}}
+            />
+          </div>
+          <div style={{...styles.inputGroup, gridColumn: 'span 2'}}>
+            <label style={styles.label}>Tags (séparés par des virgules)</label>
+            <input
+              placeholder="Horreur, Médiéval, Magie..."
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              style={styles.input}
             />
           </div>
         </div>

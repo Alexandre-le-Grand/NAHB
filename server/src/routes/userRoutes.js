@@ -19,6 +19,7 @@ router.get('/me/playthroughs', verifyToken, async (req, res) => {
             where: { UserId: userId },
             include: [{
                 model: db.Story,
+                as: 'Story', // On utilise l'alias défini dans le modèle
                 attributes: ['id', 'title', 'description'],
                 required: false
             }]
