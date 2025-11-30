@@ -21,8 +21,7 @@ router.get('/me/playthroughs', verifyToken, async (req, res) => {
                 model: db.Story,
                 attributes: ['id', 'title', 'description'],
                 required: false
-            }],
-            order: [['updatedAt', 'DESC']]
+            }]
         });
         res.json(playthroughs);
     } catch (err) {
@@ -46,6 +45,53 @@ router.put('/:id/role', verifyAdmin, async (req, res) => {
         res.json({ message: "Rôle mis à jour" });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+router.put('/:id/ban', verifyAdmin, async (req, res) => {
+    try {
+        const userToUpdate = await db.User.findByPk(req.params.id);
+        if (!userToUpdate) {
+            return res.status(404).json({ message: "Utilisateur introuvable" });
+        }
+
+        const newBanStatus = !userToUpdate.isBanned;
+
+        await userToUpdate.update({
+            isBanned: newBanStatus,
+            // Si on bannit, on rétrograde. Si on débannit, le rôle reste 'user'.
+            role: newBanStatus ? 'user' : userToUpdate.role
+        });
+
+        if (newBanStatus) {
+            // L'utilisateur est BANNI : on sauvegarde l'état actuel et on suspend.
+            const stories = await db.Story.findAll({ where: { AuthorId: req.params.id } });
+            for (const story of stories) {
+                if (story.statut === 'brouillon' || story.statut === 'publié') {
+                    // Si le statut est valide pour la sauvegarde, on le sauvegarde et on suspend.
+                    await story.update({ previousStatus: story.statut, statut: 'suspendu' });
+                } else if (story.statut !== 'suspendu') {
+                    // Si le statut n'est pas valide pour la sauvegarde mais n'est pas suspendu, on suspend simplement.
+                    await story.update({ statut: 'suspendu' });
+                }
+            }
+        } else {
+            // L'utilisateur est DÉBANNI : on restaure l'état précédent.
+            const storiesToRestore = await db.Story.findAll({ where: { AuthorId: req.params.id, statut: 'suspendu' } });
+            for (const story of storiesToRestore) {
+                // On restaure à l'état précédent, ou 'brouillon' par défaut si l'état précédent est null
+                await story.update({
+                    statut: story.previousStatus || 'brouillon'
+                });
+            }
+        }
+
+        // Recharger l'utilisateur depuis la BDD pour avoir les données les plus à jour
+        const updatedUser = await db.User.findByPk(req.params.id);
+
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ message: "Erreur lors de la modification du statut de bannissement.", error: err.message });
     }
 });
 

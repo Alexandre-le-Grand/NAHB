@@ -37,39 +37,54 @@ export default function Library() {
   };
 
   const fetchData = async () => {
+      console.log("%c[Library] Démarrage de fetchData...", "color: blue; font-weight: bold;");
       setLoading(true);
       const token = localStorage.getItem('token');
+      console.log("[Library] Token récupéré:", token ? `Bearer ${token.substring(0, 15)}...` : "Absent");
       const headers: HeadersInit = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+      console.log("[Library] Headers préparés pour la requête:", headers);
 
       try {
-        // Puisque l'utilisateur est toujours authentifié ici, on peut faire les deux appels en parallèle.
+        console.log("[Library] Envoi des requêtes en parallèle vers /stories et /users/me/playthroughs...");
         const [storiesRes, playthroughsRes] = await Promise.all([
           fetch('http://localhost:5000/stories', {
             headers: headers,
           }),
           fetch('http://localhost:5000/users/me/playthroughs', {
             headers: headers,
-          })
+          }),
         ]);
+        console.log(`[Library] Réponses reçues: /stories [${storiesRes.status}], /users/me/playthroughs [${playthroughsRes.status}]`);
 
         if (playthroughsRes.ok) {
+          console.log("Playthroughs récupérés avec succès.");
           const playthroughsData: PlaythroughData[] = await playthroughsRes.json();
+          console.log("[Library] Données des playthroughs:", playthroughsData);
           updatePlaythroughStatuses(playthroughsData);
         }
-
         if (!storiesRes.ok) {
-          console.error("Erreur lors de la récupération des histoires:", storiesRes.status, storiesRes.statusText);
+          console.error(`[Library] La requête /stories a échoué avec le statut ${storiesRes.status}. Tentative de lecture du corps de l'erreur...`);
+          // Essayons de lire le message d'erreur du backend
+          const errorData = await storiesRes.json().catch(() => null); // .json() peut échouer si la réponse est vide
+          console.error(
+            "Erreur lors de la récupération des histoires:", 
+            storiesRes.status, 
+            storiesRes.statusText,
+            errorData || "(pas de message d'erreur détaillé dans le corps de la réponse)"
+          );
           setStories([]); // Assure que stories est toujours un tableau
         } else {
+          console.log("Histoires récupérées avec succès.");
           const storiesData: Story[] = await storiesRes.json();
+          console.log("[Library] Données des histoires:", storiesData);
           setStories(storiesData);
         }
 
       } catch (err) {
-        console.error(err);
+        console.error("%c[Library] Une erreur CATCH globale est survenue dans fetchData:", "color: red; font-weight: bold;", err);
         setStories([]); // Assure que stories est un tableau même en cas d'erreur
       } finally {
         setLoading(false);

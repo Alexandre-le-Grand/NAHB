@@ -34,20 +34,46 @@ const getAllStories = async (req, res) => {
                 include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
             });
             return res.json(stories);
-        } 
-        else{
-        const stories = await db.Story.findAll({
-            where:{
-                statut: 'publié'
-            },
-            include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
-            
-        });
-                return res.json(stories);
+        } else {
+            // Pour tous les autres, on prépare le filtre des auteurs bannis.
+            const bannedUsers = await db.User.findAll({
+                where: { isBanned: true },
+                attributes: ['id']
+            });
+            const bannedUserIds = bannedUsers.map(u => u.id);
 
+            let whereClause;
+
+            // Règle 2: L'auteur voit les histoires publiées (par des non-bannis) ET les siennes.
+            if (role === 'author') {
+                const publicClause = { statut: 'publié' };
+                if (bannedUserIds.length > 0) {
+                    publicClause.AuthorId = { [Op.notIn]: bannedUserIds };
+                }
+                whereClause = {
+                    [Op.or]: [
+                        publicClause,
+                        { AuthorId: userId }
+                    ]
+                };
+            } else { // Règle 3: L'utilisateur simple ne voit que les histoires publiées (par des non-bannis).
+                whereClause = {
+                    statut: 'publié'
+                };
+                if (bannedUserIds.length > 0) {
+                    whereClause.AuthorId = { [Op.notIn]: bannedUserIds };
+                }
+            }
+
+            const stories = await db.Story.findAll({
+                where: whereClause,
+                include: [{ model: db.User, as: 'author', attributes: ['id', 'username'] }]
+            });
+            return res.json(stories);
         }
 
     } catch (err) {
+        console.error("--- ERREUR DANS getAllStories ---", err);
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };

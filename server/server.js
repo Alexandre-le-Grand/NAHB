@@ -28,7 +28,11 @@ app.get('/', (req, res) => {
     res.send("API OK 🚀");
 });
 
-sequelize.sync({ force: false })
+// sequelize.sync({ force: false }) // Ne modifie pas les tables existantes
+// sequelize.sync({ force: true }) // Supprime et recrée les tables (perd les données)
+// Utiliser { alter: true } en développement pour synchroniser les changements de modèle
+// sans perdre les données.
+sequelize.sync({ alter: true })
     .then(() => {
         console.log("✅ DB synchronisée");
         app.listen(PORT, () => console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`));

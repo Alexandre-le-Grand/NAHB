@@ -19,6 +19,10 @@ const Story = sequelize.define('Story', {
   statut: {
     type: DataTypes.ENUM('brouillon', 'publié', 'suspendu'),
     defaultValue: 'brouillon'
+  },
+  previousStatus: {
+    type: DataTypes.ENUM('brouillon', 'publié'),
+    allowNull: true // Ce champ sera souvent vide
   }}, {
   freezeTableName: true,
   timestamps: false
