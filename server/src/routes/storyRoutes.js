@@ -18,6 +18,9 @@ router.get('/:id/stats', verifyToken, storyController.getStoryStats); // Nouvell
 // La route générique avec :id doit être APRÈS les routes spécifiques comme /mine
 router.get('/:id', storyController.getStoryById); 
 router.put('/:id', verifyToken, storyController.updateStory);
+
+// Route pour l'éditeur de page : GET pour charger, PUT pour sauvegarder
+router.get('/:id/full', verifyToken, storyController.getFullStory);
 router.delete('/:id', verifyToken, storyController.deleteStory);
 
 router.post('/createStoryWithPages', verifyToken, storyController.createStoryWithPages);

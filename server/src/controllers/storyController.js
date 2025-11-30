@@ -178,11 +178,14 @@ const updateStoryWithPages = async (req, res) => {
             return res.status(403).json({ message: "Accès refusé" });
         }
 
-        // Mise à jour du titre et de la description
-        await story.update({ title, description }, { transaction: t });
+        // Mise à jour intelligente : ne met à jour que les champs fournis
+        const updateData = {};
+        if (title !== undefined) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        await story.update(updateData, { transaction: t });
 
         // Mise à jour des tags
-        if (tags) { // On ne met à jour que si le champ tags est présent
+        if (tags !== undefined) { // On ne met à jour que si le champ tags est présent (même un tableau vide)
             const tagInstances = await Promise.all(
                 tags.map(tagName => db.Tag.findOrCreate({
                     where: { name: tagName.toLowerCase() },
@@ -193,46 +196,50 @@ const updateStoryWithPages = async (req, res) => {
             await story.setTags(tagInstances, { transaction: t });
         }
 
+        // Si des pages sont fournies, on procède à la suppression/recréation.
+        // Sinon, on ne touche à rien.
+        if (pages && Array.isArray(pages)) {
+            // Suppression des anciennes pages et choix
+            const oldPages = await db.Page.findAll({ where: { storyId: story.id }, transaction: t });
+            if (oldPages.length > 0) {
+                const oldPageIds = oldPages.map(p => p.id);
+                // Supprimer tous les choix liés à ces pages (source OU destination)
+                await db.Choice.destroy({
+                    where: { // La transaction doit être dans le même objet que 'where'
+                        [Op.or]: [{ source_PageId: oldPageIds }, { next_PageId: oldPageIds }]
+                    },
+                    transaction: t 
+                });
 
-        // Suppression des anciennes pages et choix
-        const oldPages = await db.Page.findAll({ where: { storyId: story.id }, transaction: t });
-        if (oldPages.length > 0) {
-            const oldPageIds = oldPages.map(p => p.id);
-            // Supprimer tous les choix liés à ces pages (source OU destination)
-            await db.Choice.destroy({
-                where: {
-                    [Op.or]: [{ source_PageId: oldPageIds }, { next_PageId: oldPageIds }]
-                }
-            }, { transaction: t });
+                await db.Page.destroy({ where: { storyId: story.id }, transaction: t });
+            }
 
-            await db.Page.destroy({ where: { storyId: story.id } }, { transaction: t });
-        }
+            const pageMap = [];
+            for (let i = 0; i < pages.length; i++) {
+                const p = await db.Page.create({
+                    content: pages[i].content,
+                    isEnding: pages[i].isEnding || false,
+                    storyId: story.id
+                }, { transaction: t });
+                pageMap.push({ index: i, id: p.id, tempId: pages[i].id, isEnding: pages[i].isEnding || false });
+            }
 
-        const pageMap = [];
-        for (let i = 0; i < pages.length; i++) {
-            const p = await db.Page.create({
-                content: pages[i].content,
-                isEnding: pages[i].isEnding || false,
-                storyId: story.id
-            }, { transaction: t });
-            pageMap.push({ index: i, id: p.id, tempId: pages[i].id, isEnding: pages[i].isEnding || false });
-        }
-
-        for (let i = 0; i < pages.length; i++) {
-            const pageData = pages[i];
-            if (!pageMap[i].isEnding && pageData.choices && pageData.choices.length > 0) {
-                for (let choice of pageData.choices) {
-                    const nextPage = pageMap.find(p => p.tempId === choice.nextPageTempId);
-                    await db.Choice.create({
-                        text: choice.text,
-                        source_PageId: pageMap[i].id,
-                        next_PageId: nextPage ? nextPage.id : null
-                    }, { transaction: t });
+            for (let i = 0; i < pages.length; i++) {
+                const pageData = pages[i];
+                if (!pageMap[i].isEnding && pageData.choices && pageData.choices.length > 0) {
+                    for (let choice of pageData.choices) {
+                        const nextPage = pageMap.find(p => p.tempId === choice.nextPageTempId);
+                        await db.Choice.create({
+                            text: choice.text,
+                            source_PageId: pageMap[i].id,
+                            next_PageId: nextPage ? nextPage.id : null
+                        }, { transaction: t });
+                    }
                 }
             }
-        }
 
-        await story.update({ startPageId: pageMap.length > 0 ? pageMap[0].id : null }, { transaction: t });
+            await story.update({ startPageId: pageMap.length > 0 ? pageMap[0].id : null }, { transaction: t });
+        }
 
         await t.commit();
         res.status(200).json({ message: "Histoire mise à jour avec succès", storyId: story.id });
@@ -433,6 +440,7 @@ const recordPlaythrough = async (req, res) => {
 // Récupère une story complète (pages, choix et auteur) — utilisée par la route /:id/full
 const getFullStory = async (req, res) => {
     try {
+        console.log(`[getFullStory] Demande pour l'histoire ID: ${req.params.id}`);
         const story = await db.Story.findByPk(req.params.id, {
             include: [
                 {
@@ -442,11 +450,15 @@ const getFullStory = async (req, res) => {
                         { model: db.Choice, as: 'choicesFrom' },
                     ]
                 },
-                { model: db.User, as: 'author' }
+                { model: db.User, as: 'author' },
+                { model: db.Tag, through: { attributes: [] } } // On inclut aussi les tags
             ]
         });
 
-        if (!story) return res.status(404).json({ message: "Story introuvable" });
+        if (!story) {
+            console.log(`[getFullStory] Histoire ID: ${req.params.id} introuvable.`);
+            return res.status(404).json({ message: "Story introuvable" });
+        }
 
         // Convertir l'instance Sequelize en objet simple et s'assurer que les pages ont un tableau `choices`
         const plain = story.toJSON ? story.toJSON() : story;
@@ -458,8 +470,10 @@ const getFullStory = async (req, res) => {
             }));
         }
 
+        console.log(`[getFullStory] Données de l'histoire ID: ${req.params.id} envoyées avec succès.`);
         res.json(plain);
     } catch (err) {
+        console.error(`[getFullStory] Erreur pour l'histoire ID: ${req.params.id}`, err);
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };

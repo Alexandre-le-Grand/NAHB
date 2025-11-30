@@ -175,15 +175,17 @@ export default function MyStories() {
         <div className={styles.storiesGrid}>
           {filteredStories.map(story => (
             <div key={story.id} className={styles.storyCard}>
-              <h3 className={styles.storyTitle}>{story.title}</h3>
-              <p className={styles.storyDescription}>{story.description}</p>
-              {Array.isArray(story.Tags) && story.Tags.length > 0 && (
-                <div className={styles.tagsContainer}>
-                  {story.Tags.map((tag) => (
-                    <span key={tag.id} className={styles.tag}>{tag.name}</span>
-                  ))}
-                </div>
-              )}
+              <div className={styles.storyContent}> {/* On ajoute ce conteneur */}
+                <h3 className={styles.storyTitle}>{story.title}</h3>
+                <p className={styles.storyDescription}>{story.description}</p>
+                {Array.isArray(story.Tags) && story.Tags.length > 0 && (
+                  <div className={styles.tagsContainer}>
+                    {story.Tags.map((tag) => (
+                      <span key={tag.id} className={styles.tag}>{tag.name}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className={styles.storyMeta}>
                 <span className={`${styles.badge} 
                   ${story.statut === 'publié' ? styles.badgePublished : ''} 
