@@ -51,16 +51,17 @@ cd server
 npm install
 
 # Créez un fichier .env à la racine du dossier /server
-# et remplissez-le en vous basant sur le modèle ci-dessous
+# et copiez coller ceci : 
 ```
 
-**Fichier `.env.example` :**
+**Fichier `.env` :**
 ```env
-DB_HOST=localhost
+DB_HOST=mysql.thomasale.familyds.com
+DB_PORT=3307
 DB_USER=root
-DB_PASSWORD=votre_mot_de_passe_mysql
+DB_PASSWORD=charlotte
 DB_NAME=nahb_db
-JWT_SECRET=votre_secret_jwt_super_securise
+JWT_SECRET=NAHBsuperSecret2025!
 ```
 
 ```bash
