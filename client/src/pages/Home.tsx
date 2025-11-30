@@ -42,7 +42,7 @@ export default function Home() {
         transition={{ duration: 1 }}
         style={styles.title}
       >
-        Bienvenue sur NAHB
+        Bienvenue sur StoryVerse
       </motion.h1>
 
       <div style={styles.buttonContainer}>
