@@ -26,6 +26,7 @@ export default function PageStoryCreator(): JSX.Element {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [tags, setTags] = useState<string>(""); // État pour les tags
+  const [approvedTags, setApprovedTags] = useState<string[]>([]); // Pour la liste de suggestions
   const [pages, setPages] = useState<PageDraft[]>([]);
   const [content, setContent] = useState<string>("");
   const [isEnding, setIsEnding] = useState<boolean>(false);
@@ -39,6 +40,22 @@ export default function PageStoryCreator(): JSX.Element {
         navigate('/login');
     }
   }, [isLoading, isAuthenticated, navigate]);
+
+  // Fetch approved tags for suggestions
+  useEffect(() => {
+    const fetchApprovedTags = async () => {
+      try {
+        // On suppose une route GET /tags qui renvoie tous les tags (même si elle est protégée admin, on peut en créer une publique pour les tags approuvés)
+        // Pour l'instant, on utilise la route admin, en supposant que l'auteur peut être admin.
+        // Idéalement: une route publique GET /tags/approved
+        const res = await fetch(`http://localhost:5000/tags`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }});
+        if (!res.ok) return;
+        const allTags = await res.json();
+        setApprovedTags(allTags.filter((t: any) => t.status === 'approved').map((t: any) => t.name));
+      } catch (err) { console.error("Impossible de charger les tags approuvés", err); }
+    };
+    fetchApprovedTags();
+  }, []);
 
   useEffect(() => {
     if (isEditing) {
@@ -224,6 +241,13 @@ export default function PageStoryCreator(): JSX.Element {
     }
   };
   
+  const addTagFromSuggestions = (tagToAdd: string) => {
+    const currentTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+    if (!currentTags.includes(tagToAdd)) {
+      setTags(prev => prev ? `${prev}, ${tagToAdd}` : tagToAdd);
+    }
+  };
+
   if (!user) return <div style={styles.container}></div>;
 
   return (
@@ -655,4 +679,25 @@ const styles: any = {
         textAlign: 'center',
         fontSize: '14px'
     },
+    tagSuggestionContainer: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '8px',
+      marginTop: '8px',
+      alignItems: 'center'
+    },
+    suggestionLabel: {
+      fontSize: '12px',
+      color: '#94a3b8',
+      marginRight: '4px'
+    },
+    tagSuggestion: {
+      background: '#334155',
+      color: '#cbd5e1',
+      border: '1px solid #475569',
+      borderRadius: '12px',
+      padding: '4px 10px',
+      fontSize: '12px',
+      cursor: 'pointer'
+    }
 };

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('../models/index');
 
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -32,4 +33,37 @@ const verifyAdmin = (req, res, next) => {
     });
 };
 
-module.exports = { verifyToken, verifyAdmin };
+const verifyAdminOrAuthor = (req, res, next) => {
+    verifyToken(req, res, (err) => {
+        if (err) return next(err);
+        if (req.user?.role === 'admin' || req.user?.role === 'author') {
+            return next();
+        } else {
+            return res.status(403).json({ message: "Accès interdit : Vous devez être administrateur ou auteur." });
+        }
+    });
+};
+
+const verifyAdminOrStoryAuthor = async (req, res, next) => {
+    verifyToken(req, res, async (err) => {
+        if (err) return next(err);
+
+        if (req.user?.role === 'admin') {
+            return next(); // L'admin a tous les droits
+        }
+
+        try {
+            const story = await db.Story.findByPk(req.params.id);
+            if (!story) return res.status(404).json({ message: "Histoire introuvable." });
+
+            if (story.AuthorId === req.user.id) {
+                return next(); // C'est bien l'auteur de l'histoire
+            }
+            return res.status(403).json({ message: "Accès refusé : Vous n'êtes pas l'auteur de cette histoire." });
+        } catch (error) {
+            return res.status(500).json({ message: "Erreur serveur lors de la vérification des droits." });
+        }
+    });
+};
+
+module.exports = { verifyToken, verifyAdmin, verifyAdminOrAuthor, verifyAdminOrStoryAuthor };

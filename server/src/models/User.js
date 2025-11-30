@@ -5,12 +5,18 @@ const User = sequelize.define('User', {
   username: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    unique: {
+      name: 'unique_username',
+      msg: 'Ce pseudo est déjà pris.'
+    }
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: {
+      name: 'unique_email',
+      msg: 'Cet email est déjà utilisé.'
+    },
     validate: {
       isEmail: true
     }

@@ -152,10 +152,16 @@ const updateStory = async (req, res) => {
         if (story.AuthorId !== req.user.id && req.user.role !== 'admin')
             return res.status(403).json({ message: "Accès refusé" });
 
-        await story.update(req.body);
+        const updatePayload = { ...req.body };
+        // Si l'utilisateur qui modifie n'est pas un admin, on repasse l'histoire en brouillon.
+        if (req.user.role !== 'admin') {
+            updatePayload.statut = 'brouillon';
+        }
+
+        await story.update(updatePayload);
         res.json(story);
     } catch (err) {
-        res.status(500).json({ message: "Erreur serveur", error: err.message });
+        res.status(500).json({ message: "Erreur serveur lors de la mise à jour simple", error: err.message });
     }
 };
 
@@ -178,12 +184,6 @@ const updateStoryWithPages = async (req, res) => {
             return res.status(403).json({ message: "Accès refusé" });
         }
 
-        // Mise à jour intelligente : ne met à jour que les champs fournis
-        const updateData = {};
-        if (title !== undefined) updateData.title = title;
-        if (description !== undefined) updateData.description = description;
-        await story.update(updateData, { transaction: t });
-
         // Mise à jour des tags
         if (tags !== undefined) { // On ne met à jour que si le champ tags est présent (même un tableau vide)
             const tagInstances = await Promise.all(
@@ -195,6 +195,11 @@ const updateStoryWithPages = async (req, res) => {
             );
             await story.setTags(tagInstances, { transaction: t });
         }
+
+        // Mise à jour des champs de l'histoire
+        if (title !== undefined) story.title = title;
+        if (description !== undefined) story.description = description;
+
 
         // Si des pages sont fournies, on procède à la suppression/recréation.
         // Sinon, on ne touche à rien.
@@ -238,8 +243,15 @@ const updateStoryWithPages = async (req, res) => {
                 }
             }
 
-            await story.update({ startPageId: pageMap.length > 0 ? pageMap[0].id : null }, { transaction: t });
+            story.startPageId = pageMap.length > 0 ? pageMap[0].id : null;
         }
+
+        // Règle de sécurité : si un auteur modifie son histoire, elle repasse en brouillon pour revalidation.
+        if (req.user.role !== 'admin') {
+            story.statut = 'brouillon';
+        }
+
+        await story.save({ transaction: t });
 
         await t.commit();
         res.status(200).json({ message: "Histoire mise à jour avec succès", storyId: story.id });
@@ -358,10 +370,21 @@ const createStoryWithPages = async (req, res) => {
 // PUBLISH STORY (admin only)
 const publishStory = async (req, res) => {
     try {
-        const story = await db.Story.findByPk(req.params.id);
+        const story = await db.Story.findByPk(req.params.id, {
+            include: [{ model: db.Tag }] // On charge les tags associés
+        });
         if (!story) return res.status(404).json({ message: "Story introuvable" });
 
-        await story.update({ statut: "publié" });
+        // Règle de publication : on ne publie que si tous les tags sont approuvés.
+        const pendingTags = story.Tags.filter(tag => tag.status === 'pending');
+        if (pendingTags.length > 0 && req.user.role !== 'admin') {
+            // Si un auteur essaie de publier alors qu'il reste des tags en attente, on refuse.
+            // L'histoire reste en brouillon.
+            return res.status(400).json({ message: "Impossible de publier : des tags sont encore en attente de modération.", story });
+        }
+
+        // Si tout est bon, on publie.
+        await story.update({ statut: 'publié' });
         res.json({ message: "Story publiée", story });
     } catch (err) {
         res.status(500).json({ message: "Erreur serveur", error: err.message });

@@ -13,7 +13,7 @@ interface Story {
   Tags?: { // Le nom est capitalisé par Sequelize
     id: number;
     name: string;
-    status: 'pending' | 'approved';
+    status: 'pending' | 'approved' | 'rejected';
   }[];
 }
 
@@ -29,6 +29,10 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [playthroughStatuses, setPlaythroughStatuses] = useState<Record<number, 'en_cours' | 'fini'>>({});
+
+  // State pour la popup de modération des tags
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [storyForTagModal, setStoryForTagModal] = useState<Story | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -115,27 +119,75 @@ export default function Library() {
       window.removeEventListener('focus', fetchData);
     };
   }, [user]); // On garde `user` comme dépendance pour recharger si l'utilisateur se connecte/déconnecte
-  const handlePublish = async (storyId: number) => {
-    if (!user) return;
 
+  const openTagModerationModal = (story: Story) => {
+    setStoryForTagModal(story);
+    setTagModalOpen(true);
+  };
+
+  const handlePublishClick = (story: Story) => {
+    const pendingTags = story.Tags?.filter(t => t.status === 'pending') || [];
+    // Si l'utilisateur est admin et qu'il y a des tags en attente, on ouvre la popup
+    if (user?.role === 'admin' && pendingTags.length > 0) {
+      openTagModerationModal(story);
+    } else {
+      // Sinon, on publie directement
+      publishStory(story.id);
+    }
+  };
+
+  const publishStory = async (storyId: number) => {
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:5000/stories/${storyId}/publish`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!res.ok) throw new Error('Impossible de publier');
-
       setStories(prev =>
         prev.map(story =>
           story.id === storyId ? { ...story, statut: 'publié' } : story
         )
       );
+      // Fermer la popup si elle était ouverte
+      setTagModalOpen(false);
+      setStoryForTagModal(null);
     } catch (err) {
       console.error(err);
+      alert("Erreur lors de la publication de l'histoire.");
+    }
+  };
+
+  const handleTagDecision = async (tagId: number, decision: 'approve' | 'reject') => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/tags/${tagId}/${decision}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Impossible de ${decision} le tag.`);
+      
+      // Mettre à jour l'état local pour que le changement soit visible immédiatement
+      if (storyForTagModal) {
+        // On met à jour le statut du tag au lieu de le supprimer de la vue
+        const updatedTags = storyForTagModal.Tags?.map(tag => 
+          tag.id === tagId ? { ...tag, status: decision === 'approve' ? 'approved' : 'rejected' } : tag
+        );
+        const updatedStory = { ...storyForTagModal, Tags: updatedTags };
+        setStoryForTagModal(updatedStory);
+        // Mettre aussi à jour la liste principale des histoires
+        setStories(prev => prev.map(s => s.id === updatedStory.id ? updatedStory : s));
+
+        // S'il n'y a plus de tags en attente dans la popup, on publie automatiquement.
+        const remainingPendingTags = updatedTags?.filter(t => t.status === 'pending');
+        if (remainingPendingTags && remainingPendingTags.length === 0) {
+          // On attend un court instant pour que l'utilisateur voie le changement, puis on publie.
+          setTimeout(() => publishStory(storyForTagModal.id), 300);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Erreur lors de la modération du tag.`);
     }
   };
 
@@ -224,8 +276,10 @@ export default function Library() {
               <p className={styles.storyDescription}>{story.description}</p>
               {Array.isArray(story.Tags) && story.Tags.length > 0 && (
                 <div className={styles.tagsContainer}>
-                  {story.Tags.map((tag) => (
-                    <span key={tag.id} className={styles.tag}>{tag.name}</span>
+                  {story.Tags.map(tag => (
+                    <span key={tag.id} className={`${styles.tag} ${tag.status === 'pending' ? styles.tagPending : ''}`}>
+                      {tag.name}
+                    </span>
                   ))}
                 </div>
               )}
@@ -251,7 +305,7 @@ export default function Library() {
                 {(user?.role === 'admin') && (
                   <>
                     {story.statut === 'brouillon' && (
-                        <button onClick={() => handlePublish(story.id)} className={`${styles.button} ${styles.buttonPrimary}`}>Publier</button>
+                        <button onClick={() => handlePublishClick(story)} className={`${styles.button} ${styles.buttonPrimary}`}>Publier</button>
                     )}
                     <Link to={`/story-creator/${story.id}`} className={`${styles.button} ${styles.buttonSecondary}`}>Modifier</Link>
                     <button onClick={() => handleDelete(story.id)} className={`${styles.button} ${styles.buttonDelete}`}>Supprimer</button>
@@ -269,6 +323,33 @@ export default function Library() {
             </div>
           ))}
         </div>
+        {tagModalOpen && storyForTagModal && (
+          <div className={styles.modalBackdrop}>
+            <div className={styles.modalContent}>
+              <h2 className={styles.modalTitle}>Modération des tags</h2>
+              <p className={styles.modalDescription}>Les tags suivants sont en attente pour l'histoire "{storyForTagModal.title}". Approuvez-les pour qu'ils deviennent publics.</p>
+              <div className={styles.tagModerationList}>
+                {storyForTagModal.Tags?.filter(t => t.status === 'pending').map(tag => (
+                  <div key={tag.id} className={styles.tagModerationItem}>
+                    <span className={styles.tagPendingName}>{tag.name}</span>
+                    <div className={styles.tagModerationActions}>
+                      <button onClick={() => handleTagDecision(tag.id, 'approve')} className={`${styles.button} ${styles.buttonApprove}`}>Approuver</button>
+                      <button onClick={() => handleTagDecision(tag.id, 'reject')} className={`${styles.button} ${styles.buttonReject}`}>Rejeter</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.modalActions}>
+                <button onClick={() => setTagModalOpen(false)} className={`${styles.button} ${styles.buttonSecondary}`}>Annuler</button>
+                <button 
+                  onClick={() => publishStory(storyForTagModal.id)} 
+                  className={`${styles.button} ${styles.buttonPrimary}`}>
+                  Publier l'histoire
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

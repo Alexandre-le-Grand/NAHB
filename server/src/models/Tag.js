@@ -8,7 +8,7 @@ const Tag = sequelize.define('Tag', {
     unique: true
   },
   status: {
-    type: DataTypes.ENUM('pending', 'approved'),
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
     defaultValue: 'pending',
     allowNull: false
   }

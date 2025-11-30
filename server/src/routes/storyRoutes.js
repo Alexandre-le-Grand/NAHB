@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const storyController = require('../controllers/storyController');
 const db = require('../models'); // Importer l'objet db pour que la route de diagnostic fonctionne
-const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware'); // Garder pour les routes protégées
+const { verifyToken, verifyAdmin, verifyAdminOrStoryAuthor } = require('../middleware/authMiddleware'); // Garder pour les routes protégées
 
 router.post('/', verifyToken, storyController.createStory);
 
@@ -39,7 +39,7 @@ if (process.env.NODE_ENV !== 'production') {
 	}
 }
 
-router.put('/:id/publish', verifyToken, verifyAdmin, storyController.publishStory);
+router.put('/:id/publish', verifyToken, verifyAdminOrStoryAuthor, storyController.publishStory);
 
 router.patch('/:id/suspend', verifyToken, verifyAdmin, storyController.suspendStory);
 
